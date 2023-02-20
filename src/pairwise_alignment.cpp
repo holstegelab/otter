@@ -122,7 +122,7 @@ void otter_realignment(const std::string& chr, const int& start, const int& end,
 				aligner.alignEnd2End(ref_left, subseq);
 			}
 			else if(right_realignment){
-				if(ref_left.empty()) faidx_inst.fetch(chr, end, end + flank, ref_right);
+				if(ref_right.empty()) faidx_inst.fetch(chr, end, end + flank, ref_right);
 				subseq = sequences.seqs[i].substr(status.alignment_coords.second);
 				aligner.alignEnd2End(ref_right, subseq);
 			}
