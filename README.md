@@ -17,7 +17,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<your_local_htslib_path>
 
 ```bash
 git clone https://github.com/holstegelab/otter.git && cd otter
-mkdir build && mkdir include
+mkdir build
 make packages
 make
 ```
