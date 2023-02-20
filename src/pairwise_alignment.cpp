@@ -13,16 +13,19 @@ double otter_seq_dist(wfa::WFAligner& aligner, std::string& x, ParsingStatus& x_
 {
 	if(!x_status.is_spanning() && !y_status.is_spanning()) return -1;
 	else{
-		bool x_smallest = x.size() < y.size();
-		double largest = x_smallest ? (double)y.size() : (double)x.size();
-		
-		if(x_smallest) aligner.alignEnd2End(x, y); else aligner.alignEnd2End(y, x);
+		if(x == y) return 0.0;
+		else{
+			bool x_smallest = x.size() < y.size();
+			double largest = x_smallest ? (double)y.size() : (double)x.size();
+			
+			if(x_smallest) aligner.alignEnd2End(x, y); else aligner.alignEnd2End(y, x);
 
-		int dist = aligner.getAlignmentScore();
-		if(x_status.is_spanning() && y_status.is_spanning()) return dist/largest;
-		else {
-			int size_diff = x_smallest ? (int)y.size() - (int)x.size() : (int)x.size() - (int)y.size();
-			return (dist - size_diff)/largest;
+			int dist = aligner.getAlignmentScore();
+			if(x_status.is_spanning() && y_status.is_spanning()) return dist/largest;
+			else {
+				int size_diff = x_smallest ? (int)y.size() - (int)x.size() : (int)x.size() - (int)y.size();
+				return (dist - size_diff)/largest;
+			}
 		}
 	}	
 }
