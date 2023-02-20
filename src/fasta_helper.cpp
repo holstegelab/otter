@@ -12,8 +12,8 @@ int FaidxInstance::fetch(const std::string& chr, int start, int end, std::string
 	if(ref_l > 0){
 		seq.resize(ref_l, 'N');
 		for(int i = 0; i < ref_l; ++i) seq[i] = std::toupper(*(ref_seq +i));
-		free(ref_seq);
 	}
+	free(ref_seq);
 	return ref_l;
 }
 

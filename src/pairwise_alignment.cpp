@@ -142,7 +142,7 @@ void otter_realignment(const std::string& chr, const int& start, const int& end,
 				int max_sum_i = 0;
 				for(j = 0; j < (int)scores.size(); ++j) if(scores[j] > scores[max_sum_i]) max_sum_i = j;
 				int start_i = max_sum_i;
-				while(start_i >= 0 && scores[start_i] > 0) --start_i;
+				while(start_i > 0 && scores[start_i] > 0) --start_i;
 				if((scores[max_sum_i] / (double)flank) >= min_sim){
 					if(left_realignment) sequences.seqs[i] = sequences.seqs[i].substr(max_sum_i);
 					else if(right_realignment) sequences.seqs[i] = sequences.seqs[i].substr(0, status.alignment_coords.second + start_i);
