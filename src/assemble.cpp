@@ -38,7 +38,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 				mod_bed.end += (uint32_t)params.offset;
 				parse_alignments(params, mod_bed, bam_inst, alignment_block);
 				if(!alignment_block.names.empty()){
-					if(!reference.empty()) otter_realignment(local_bed.chr, (int)local_bed.start, (int)local_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
+					if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
 					std::vector<int> spannable_indeces;
 					for(int j = 0; j < (int)alignment_block.statuses.size(); ++j) if(alignment_block.statuses[j].is_spanning()) spannable_indeces.emplace_back(j);
 					if(!spannable_indeces.empty()) {
