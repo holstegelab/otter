@@ -21,23 +21,6 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 	
 	std::cerr << '(' << antimestamp() << "): Processing " << bam << '\n';
 	std::mutex std_out_mtx;
-
-	/**
-	std::vector<std::string> ref_lefts(bed_regions.size());
-	std::vector<std::string> ref_rights(bed_regions.size());
-	FaidxInstance faidx_inst;
-	if(!reference.empty()) {
-		faidx_inst.init(reference);
-		for(int i = 0; i < (int)bed_regions.size(); ++i){
-			BED mod_bed = bed_regions[i];
-			mod_bed.start -= (uint32_t)params.offset;
-			mod_bed.end += (uint32_t)params.offset;
-			faidx_inst.fetch(mod_bed.chr, mod_bed.start - params.flank, mod_bed.end, ref_lefts[i]);
-			faidx_inst.fetch(mod_bed.chr, mod_bed.end, mod_bed.end + params.flank, ref_rights[i]);
-		}
-		faidx_inst.destroy();
-	}
-*/
 	pool.parallelize_loop(0, bed_regions.size(),
 		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &reference](const int a, const int b){
 			BamInstance bam_inst;
