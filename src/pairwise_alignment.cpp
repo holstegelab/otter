@@ -106,6 +106,50 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 	}
 }
 
+void otter_realignment2(const std::string& chr, const int& flank, const double& min_sim, std::string& ref_left, std::string&ref_right, AlignmentBlock& sequences, wfa::WFAligner& aligner)
+{
+	for(int i = 0; i < (int)sequences.names.size(); ++i){
+		auto status = sequences.statuses[i];
+		if(!status.is_spanning() && (status.spanning_l || status.spanning_r)){
+			bool left_realignment = status.spanning_r && status.alignment_coords.first >= flank;
+			bool right_realignment = status.spanning_l && (int)sequences.seqs[i].size() - status.alignment_coords.second >= flank;
+			std::string subseq = "";
+			if(left_realignment) {
+				subseq = sequences.seqs[i].substr(0, status.alignment_coords.first);
+				aligner.alignEnd2End(ref_left, subseq);
+			}
+			else if(right_realignment){
+				subseq = sequences.seqs[i].substr(status.alignment_coords.second);
+				aligner.alignEnd2End(ref_right, subseq);
+			}
+
+			if(!subseq.empty()){
+				std::vector<int> scores(subseq.size(), 0);
+				int j = 0;
+				for(const auto& op : aligner.getAlignmentCigar()){
+					int penalty = op == 'M' ? 1 : -1;
+					if(penalty > 0){
+						if(j == 0) scores[j] = penalty;
+						else scores[j] = scores[j-1] + penalty;
+					}
+					else if(j > 0 && scores[j-1] > 0) scores[j] = scores[j-1] + penalty;
+					if(op != 'D') ++j;
+				}
+				int max_sum_i = 0;
+				for(j = 0; j < (int)scores.size(); ++j) if(scores[j] > scores[max_sum_i]) max_sum_i = j;
+				int start_i = max_sum_i;
+				while(start_i > 0 && scores[start_i] > 0) --start_i;
+				if((scores[max_sum_i] / (double)flank) >= min_sim){
+					if(left_realignment) sequences.seqs[i] = sequences.seqs[i].substr(max_sum_i);
+					else if(right_realignment) sequences.seqs[i] = sequences.seqs[i].substr(0, status.alignment_coords.second + start_i);
+					sequences.statuses[i].spanning_l = true;
+					sequences.statuses[i].spanning_r = true;
+				}
+			}
+		}
+	}
+}
+
 void otter_realignment(const std::string& chr, const int& start, const int& end, const int& flank, const double& min_sim, const FaidxInstance& faidx_inst, AlignmentBlock& sequences, wfa::WFAligner& aligner)
 {
 	std::string ref_left = "";

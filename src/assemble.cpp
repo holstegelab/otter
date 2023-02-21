@@ -21,14 +21,31 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 	
 	std::cerr << '(' << antimestamp() << "): Processing " << bam << '\n';
 	std::mutex std_out_mtx;
+
+	std::vector<std::string> ref_lefts(bed_regions.size());
+	std::vector<std::string> ref_rights(bed_regions.size());
+	FaidxInstance faidx_inst;
+	if(!reference.empty()) {
+		faidx_inst.init(reference);
+		for(int i = 0; i < (int)bed_regions.size(); ++i){
+			BED mod_bed = bed_regions[i];
+			mod_bed.start -= (uint32_t)params.offset;
+			mod_bed.end += (uint32_t)params.offset;
+			faidx_inst.fetch(mod_bed.chr, mod_bed.start - params.flank, mod_bed.end, ref_lefts[i]);
+			faidx_inst.fetch(mod_bed.chr, mod_bed.end, mod_bed.end + params.flank, ref_rights[i]);
+		}
+	}
+
+	faidx_inst.destroy();
+
 	pool.parallelize_loop(0, bed_regions.size(),
-		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &reference](const int a, const int b){
+		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &reference, &ref_lefts, &ref_rights](const int a, const int b){
 			BamInstance bam_inst;
 			bam_inst.init(bam, true);
 			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
 			wfa::WFAlignerGapAffine aligner2(4,6,2,wfa::WFAligner::Alignment,wfa::WFAligner::MemoryMed);
-			FaidxInstance faidx_inst;
-			if(!reference.empty()) faidx_inst.init(reference);
+			//FaidxInstance faidx_inst;
+			//if(!reference.empty()) faidx_inst.init(reference);
 
 			for(int i = a; i < b; ++i) {
 				AlignmentBlock alignment_block;
@@ -38,7 +55,8 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 				mod_bed.end += (uint32_t)params.offset;
 				parse_alignments(params, mod_bed, bam_inst, alignment_block);
 				if(!alignment_block.names.empty()){
-					if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
+					//if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
+					if(!reference.empty()) otter_realignment2(local_bed.chr, params.flank, params.min_sim, ref_lefts[i], ref_rights[i], alignment_block, aligner2);
 					std::vector<int> spannable_indeces;
 					for(int j = 0; j < (int)alignment_block.statuses.size(); ++j) if(alignment_block.statuses[j].is_spanning()) spannable_indeces.emplace_back(j);
 					if(!spannable_indeces.empty()) {
@@ -63,7 +81,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 				}
 			}
 			bam_inst.destroy();
-			if(!reference.empty()) faidx_inst.destroy();
+			//if(!reference.empty()) faidx_inst.destroy();
 	}).wait();
 }
 

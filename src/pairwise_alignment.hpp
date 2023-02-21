@@ -38,6 +38,16 @@ void otter_hclust(
 	std::vector<int>& cluster_labels
 );
 
+void otter_realignment2(
+	const std::string& chr, 
+	const int& flank, 
+	const double& min_sim, 
+	std::string& ref_left, 
+	std::string&ref_right, 
+	AlignmentBlock& sequences, 
+	wfa::WFAligner& aligner
+);
+
 void otter_realignment(
 	const std::string& chr, 
 	const int& start, 
