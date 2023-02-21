@@ -175,13 +175,15 @@ void otter_realignment(const std::string& chr, const int& start, const int& end,
 				std::vector<int> scores(subseq.size(), 0);
 				int j = 0;
 				for(const auto& op : aligner.getAlignmentCigar()){
-					int penalty = op == 'M' ? 1 : -1;
-					if(penalty > 0){
-						if(j == 0) scores[j] = penalty;
-						else scores[j] = scores[j-1] + penalty;
+					if(op != 'D'){
+						int penalty = op == 'M' ? 1 : -1;
+						if(penalty > 0){
+							if(j == 0) scores[j] = penalty;
+							else scores[j] = scores[j-1] + penalty;
+						}
+						else if(j > 0 && scores[j-1] > 0) scores[j] = scores[j-1] + penalty;
+						++j;
 					}
-					else if(j > 0 && scores[j-1] > 0) scores[j] = scores[j-1] + penalty;
-					if(op != 'D') ++j;
 				}
 				int max_sum_i = 0;
 				for(j = 0; j < (int)scores.size(); ++j) if(scores[j] > scores[max_sum_i]) max_sum_i = j;

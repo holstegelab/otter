@@ -17,4 +17,4 @@ int FaidxInstance::fetch(const std::string& chr, int start, int end, std::string
 	return ref_l;
 }
 
-void FaidxInstance::destroy(){fai_destroy(faidx_ptr);}
+void FaidxInstance::destroy(){fai_destroy(faidx_ptr); faidx_ptr = nullptr;}
