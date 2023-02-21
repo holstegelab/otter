@@ -23,45 +23,48 @@ bool Region::is_empty() const {return seqs.empty();}
 
 double Region::bipartite_dist(Region& that, wfa::WFAligner& aligner)
 {
-	DistMatrix distmatrix(seqs.size() + that.seqs.size());
-	for(int i = 0; i < (int)seqs.size(); ++i){
-		for(int j = 0; j < (int)that.seqs.size(); ++j){
-			if(seqs[i].size() < that.seqs[j].size()) aligner.alignEnd2End(seqs[i], that.seqs[j]);
-			else aligner.alignEnd2End(that.seqs[j],seqs[i]);
-			distmatrix.set_dist(i, (int)seqs.size() + j, aligner.getAlignmentScore());
-		}
-	}
-
-	std::vector<std::pair<int,int>> edges;
-
-	for(int i = 0; i < (int)seqs.size(); ++i){
-		int min_j = -1;
-		double min_dist = 100000000.0;
-		for(int j = 0; j < (int)that.seqs.size(); ++j){
-			bool nodes_available = true;
-			for(const auto& edge : edges) if(edge.first == i || edge.second == j) nodes_available = false;
-			if(nodes_available){
-				double dist = distmatrix.get_dist(i, j + (int)seqs.size());
-				if(dist < min_dist) {
-					min_j = j;
-					min_dist = dist;
-				}
+	if(seqs.empty() || that.seqs.empty()) return -1.0;
+	else{
+		DistMatrix distmatrix(seqs.size() + that.seqs.size());
+		for(int i = 0; i < (int)seqs.size(); ++i){
+			for(int j = 0; j < (int)that.seqs.size(); ++j){
+				if(seqs[i].size() < that.seqs[j].size()) aligner.alignEnd2End(seqs[i], that.seqs[j]);
+				else aligner.alignEnd2End(that.seqs[j],seqs[i]);
+				distmatrix.set_dist(i, (int)seqs.size() + j, aligner.getAlignmentScore());
 			}
 		}
-		if(min_j > -1) edges.emplace_back(std::make_pair(i, min_j));
+
+		std::vector<std::pair<int,int>> edges;
+
+		for(int i = 0; i < (int)seqs.size(); ++i){
+			int min_j = -1;
+			double min_dist = 100000000.0;
+			for(int j = 0; j < (int)that.seqs.size(); ++j){
+				bool nodes_available = true;
+				for(const auto& edge : edges) if(edge.first == i || edge.second == j) nodes_available = false;
+				if(nodes_available){
+					double dist = distmatrix.get_dist(i, j + (int)seqs.size());
+					if(dist < min_dist) {
+						min_j = j;
+						min_dist = dist;
+					}
+				}
+			}
+			if(min_j > -1) edges.emplace_back(std::make_pair(i, min_j));
+		}
+
+		double total_sum = 0.0;
+		int total_length = 0;
+
+		for(const auto& e : edges) {
+			int x_l = seqs[e.first].size();
+			int y_l = that.seqs[e.second].size();
+			total_sum += distmatrix.get_dist(e.first, e.second + (int)seqs.size());
+			total_length += x_l > y_l ? x_l : y_l;
+		}
+
+		return total_sum / total_length;
 	}
-
-	double total_sum = 0.0;
-	int total_length = 0;
-
-	for(const auto& e : edges) {
-		int x_l = seqs[e.first].size();
-		int y_l = that.seqs[e.second].size();
-		total_sum += distmatrix.get_dist(e.first, e.second + (int)seqs.size());
-		total_length += x_l > y_l ? x_l : y_l;
-	}
-
-	return total_sum / total_length;
 
 }
 
@@ -132,8 +135,10 @@ void dist(const std::vector<std::string>& fastas, const OtterOpts& params)
 			for(int k = j + 1; k < (int)sample_regions.size(); ++k){
 				if(!sample_regions[j][i].is_empty() || sample_regions[k][i].is_empty()){
 					double dist = sample_regions[j][i].bipartite_dist(sample_regions[k][i], aligner);
-					std::cout << fastas[j] << '\t' << fastas[k] << '\t' << regions_indexed[i] << '\t' << dist << '\n';
-					std::cout << fastas[k] << '\t' << fastas[j] << '\t' << regions_indexed[i] << '\t' << dist << '\n';
+					if(dist >= 0.0){
+						std::cout << fastas[j] << '\t' << fastas[k] << '\t' << regions_indexed[i] << '\t' << dist << '\n';
+						std::cout << fastas[k] << '\t' << fastas[j] << '\t' << regions_indexed[i] << '\t' << dist << '\n';
+					}
 				}
 			}
 		}
