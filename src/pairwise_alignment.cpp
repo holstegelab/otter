@@ -56,7 +56,7 @@ std::pair<double, double> otter_find_clustering_dist(const double& bandwidth, co
 	else {
 		int m_i = 1;
 		for(int i = 2; i < (int)maximas.size(); ++i){
-			if(maximas[i].second > maximas[m_i].second) {
+			if(maximas[i].second - maximas[m_i].second > 1.0 && maximas[i].second > maximas[m_i].second) {
 				m_i = i;
 			}
 		}
