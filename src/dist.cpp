@@ -54,16 +54,15 @@ double Region::bipartite_dist(Region& that, wfa::WFAligner& aligner)
 		}
 
 		double total_sum = 0.0;
-		int total_length = 0;
 
 		for(const auto& e : edges) {
 			int x_l = seqs[e.first].size();
 			int y_l = that.seqs[e.second].size();
-			total_sum += distmatrix.get_dist(e.first, e.second + (int)seqs.size());
-			total_length += x_l > y_l ? x_l : y_l;
+			int largest = x_l > y_l ? x_l : y_l;
+			total_sum += (distmatrix.get_dist(e.first, e.second + (int)seqs.size()) / largest);
 		}
 
-		return total_sum / total_length;
+		return total_sum / 2.0;
 	}
 
 }
