@@ -97,28 +97,37 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
 		    ++total_alleles;
 			if(total_alleles > max_alleles) {
-				cutree_k(spannable_indeces.size(), merge, max_alleles+1, labels);
-				std::vector<int> label_counts(total_alleles);
+				int total_alleles_local = max_alleles + 1;
+				cutree_k(spannable_indeces.size(), merge, total_alleles_local, labels);
+				std::vector<int> label_counts(total_alleles_local);
 				for(int i = 0; i < (int)spannable_indeces.size(); ++i) ++label_counts[labels[i]];
-				int min_label = -1;
-				for(int i = 0; i < max_alleles+1; ++i) if(min_label < 0 || label_counts[i] < label_counts[min_label]) min_label = i;
-				
-				std::vector<double> label_sum_dists(max_alleles+1);
-				for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-					if(labels[i] == min_label){
-						for(int j = 0; j < (int)spannable_indeces.size();++j){
-							if(labels[j] != min_label){
-								label_sum_dists[labels[j]] += distmatrix.get_dist(i,j);
+				std::vector<int> label_counts_srt = label_counts;
+				sort(label_counts_srt.begin(), label_counts_srt.end());
+				int second_max_count = label_counts_srt[total_alleles_local - 2];
+
+				if(second_max_count == 1) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
+				else{
+					std::cout << second_max_count << '\n';
+					int min_label = -1;
+					for(int i = 0; i < max_alleles+1; ++i) if(min_label < 0 || label_counts[i] < label_counts[min_label]) min_label = i;
+					
+					std::vector<double> label_sum_dists(total_alleles_local);
+					for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+						if(labels[i] == min_label){
+							for(int j = 0; j < (int)spannable_indeces.size();++j){
+								if(labels[j] != min_label){
+									label_sum_dists[labels[j]] += distmatrix.get_dist(i,j);
+								}
 							}
 						}
 					}
-				}
-				for(int i = 0; i < max_alleles+1; ++i) if(i != min_label) label_sum_dists[i] /= label_counts[i];
-				int min_target_label = -1;
-				for(int i = 0; i < max_alleles+1; ++i) if(i != min_label && (min_target_label == -1 || label_sum_dists[i] < label_sum_dists[min_target_label])) min_target_label = i;
-				for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
-					if(labels[i] == min_label) labels[i] = min_target_label;
-					if(labels[i] > min_label) --labels[i];
+					for(int i = 0; i < total_alleles_local; ++i) if(i != min_label) label_sum_dists[i] /= label_counts[i];
+					int min_target_label = -1;
+					for(int i = 0; i < total_alleles_local; ++i) if(i != min_label && (min_target_label == -1 || label_sum_dists[i] < label_sum_dists[min_target_label])) min_target_label = i;
+					for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
+						if(labels[i] == min_label) labels[i] = min_target_label;
+						if(labels[i] > min_label) --labels[i];
+					}
 				}
 			}
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
