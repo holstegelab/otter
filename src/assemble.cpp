@@ -70,9 +70,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 
 void assemble(const std::vector<std::string>& bams, const std::string& bed, const std::string& reference, const OtterOpts& params)
 {
-	//setup thread pool
-	int threads = params.threads == 1 ? 1 : params.threads - 1;
- 	BS::thread_pool pool(threads);
+ 	BS::thread_pool pool(params.threads);
 
  	//load bed file
  	BedMap map_beds;

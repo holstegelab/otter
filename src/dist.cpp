@@ -1,13 +1,15 @@
 #include "dist_matrix.hpp"
-#include "bindings/cpp/WFAligner.hpp"
 #include "kseq.h"
 #include "otter_opts.hpp"
+#include "BS_thread_pool.hpp"
+#include "bindings/cpp/WFAligner.hpp"
 #include <zlib.h>
 #include <string>
 #include <vector>
 #include <utility>
 #include <map>
 #include <iostream>
+#include <mutex>
 
 
 KSEQ_INIT(gzFile, gzread)
@@ -115,31 +117,26 @@ void dist(const std::vector<std::string>& fastas, const OtterOpts& params)
 		}
 	}
 
-	/**
-	for(int i = 0; i < (int)sample_regions.size();++i){
-		std::cout << i << ":\n";
-		for(int j = 0; j < (int)regions.size(); ++j){
-			std::cout << '\t' << j << ":\n";
-			const auto& local_regions = sample_regions[i][j];
-			for(const auto& s : local_regions.seqs) std::cout << "\t\t" << s << '\n';
 
-		}
-	}
-	*/
+	BS::thread_pool pool(params.threads);
 
-	wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
+	std::mutex std_out_mtx;
 
-	for(int i = 0; i < (int)regions.size(); ++i){
-		for(int j = 0; j < (int)sample_regions.size(); ++j){
-			for(int k = j + 1; k < (int)sample_regions.size(); ++k){
-				if(!sample_regions[j][i].is_empty() || sample_regions[k][i].is_empty()){
-					double dist = sample_regions[j][i].bipartite_dist(sample_regions[k][i], aligner);
-					if(dist >= 0.0){
-						std::cout << fastas[j] << '\t' << fastas[k] << '\t' << regions_indexed[i] << '\t' << dist << '\n';
-						std::cout << fastas[k] << '\t' << fastas[j] << '\t' << regions_indexed[i] << '\t' << dist << '\n';
+	pool.parallelize_loop(0, regions_indexed.size(),
+		[&pool, &std_out_mtx, &fastas, &regions_indexed, &sample_regions](const int a, const int b){
+			for(int region_i = a; region_i < b; ++region_i) {
+				wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
+				for(int j = 0; j < (int)sample_regions.size(); ++j){
+					for(int k = j + 1; k < (int)sample_regions.size(); ++k){
+						double dist = sample_regions[j][region_i].bipartite_dist(sample_regions[k][region_i], aligner);
+						if(dist >= 0.0){
+							std_out_mtx.lock();
+							std::cout << fastas[j] << '\t' << fastas[k] << '\t' << regions_indexed[region_i] << '\t' << dist << '\n';
+							std::cout << fastas[k] << '\t' << fastas[j] << '\t' << regions_indexed[region_i] << '\t' << dist << '\n';
+							std_out_mtx.unlock();
+						}
 					}
 				}
 			}
-		}
-	}
+	}).wait();
 }
