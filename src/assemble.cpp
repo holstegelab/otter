@@ -37,7 +37,9 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 				mod_bed.start -= (uint32_t)params.offset;
 				mod_bed.end += (uint32_t)params.offset;
 				parse_alignments(params, mod_bed, bam_inst, alignment_block);
-				if(!alignment_block.names.empty() && (int)alignment_block.names.size() <= params.max_cov){
+				if(alignment_block.names.size() == 0) std::cerr << '(' << antimestamp() << "): WARNING: no reads found at region " << local_bed.toBEDstring() << '\n';
+				else if ((int)alignment_block.names.size() > params.max_cov) std::cerr << '(' << antimestamp() << "): WARNING: abnormal coverage for region " << local_bed.toBEDstring() << " (" << alignment_block.names.size() << "x)\n";
+				else{
 					if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
 					std::vector<int> spannable_indeces;
 					for(int j = 0; j < (int)alignment_block.statuses.size(); ++j) if(alignment_block.statuses[j].is_spanning()) spannable_indeces.emplace_back(j);
