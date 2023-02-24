@@ -21,6 +21,7 @@ void command_assemble_parser(int argc, char** argv){
       ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("50"))
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
+      ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.025"))
       ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
       ("r, reference", "(Optional) Path to reference genome.", cxxopts::value<std::string>()->default_value(""))
@@ -40,6 +41,7 @@ void command_assemble_parser(int argc, char** argv){
       params.init_offset(result["offset"].as<int>());
       params.init_max_alleles(result["max-alleles"].as<int>());
       params.init_mapq(result["mapq"].as<int>());
+      params.init_max_cov(result["max-cov"].as<int>());
       params.init_threads(result["threads"].as<int>());
       params.init_max_error(result["max-error"].as<double>());
       params.init_bandwidth(result["bandwidth"].as<double>());

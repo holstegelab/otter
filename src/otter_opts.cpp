@@ -31,6 +31,15 @@ void OtterOpts::init_mapq(int _mapq)
 	}
 }
 
+void OtterOpts::init_max_cov(int _max_cov)
+{
+	if(_max_cov >= 0) max_cov = _max_cov;
+	else{
+		std::cout << '(' << antimestamp() << "): Invalid max-coverage value: " << _max_cov <<  std::endl;
+		exit(0);
+	}
+}
+
 void OtterOpts::init_threads(int _threads)
 {
 	if(_threads > 0 && _threads <= 32) threads = _threads;
