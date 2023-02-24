@@ -1,7 +1,6 @@
 WFADIR=include/WFA2-lib
 HCLUST=include/hclust-cpp
 
-
 INC = -L$(WFADIR)/lib -I$(WFADIR) -L${HCLUST} -I${HCLUST}
 CFLAGS=-lz -lm -fopenmp -lhts -lwfacpp
 LDFLAGS=$(CFLAGS)
@@ -10,7 +9,6 @@ CXX_FLAGS=-std=c++17 -Wall -O2 -g
 
 ODIR = build
 SDIR = src
-
 
 OUT = otter
 

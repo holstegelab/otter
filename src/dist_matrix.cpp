@@ -1,14 +1,16 @@
+#include "dist_matrix.hpp"
 #include <vector>
 #include <exception>
 #include <iostream>
 #include <cstddef>
 #include <cmath>
-#include "dist_matrix.hpp"
 
-DistMatrix::DistMatrix(uint32_t _n): n(_n), d_n((n * (n - 1)) / 2)
+DistMatrix::DistMatrix(uint32_t _n): n(_n)
 {
-	values.resize(d_n, 1.0);
+	values.resize((n * (n - 1)) / 2, 1.0);
 }
+
+DistMatrix::DistMatrix(uint32_t& _n, std::vector<double>& _values):n(_n),values(_values){}
 
 void DistMatrix::set_dist(uint32_t i, uint32_t j, double d)
 {
