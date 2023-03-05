@@ -43,7 +43,9 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 					std::string region_str = bed_regions[i].toBEDstring();
 					if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
 					if(reads_only){
+						std_out_mtx.lock();
 						for(int i = 0; i < (int)alignment_block.names.size(); ++i) std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
+						std_out_mtx.unlock();
 					}
 					else{
 						std::vector<int> spannable_indeces;
