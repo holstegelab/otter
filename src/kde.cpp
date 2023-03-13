@@ -49,4 +49,5 @@ void KDE::maximas(const std::vector<double>& densities, std::vector<std::pair<in
 		last_sum = sum;
 		last_sum_i = i;
 	}
+	if(find_maxima) maxs.emplace_back(std::make_pair(last_sum_i, last_sum));
 }

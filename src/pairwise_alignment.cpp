@@ -108,7 +108,7 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 				if(second_max_count == 1) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
 				else{
 					int min_label = -1;
-					for(int i = 0; i < max_alleles+1; ++i) if(min_label < 0 || label_counts[i] < label_counts[min_label]) min_label = i;
+					for(int i = 0; i < total_alleles_local; ++i) if(min_label < 0 || label_counts[i] < label_counts[min_label]) min_label = i;
 					
 					std::vector<double> label_sum_dists(total_alleles_local);
 					for(int i = 0; i < (int)spannable_indeces.size(); ++i){
