@@ -91,7 +91,7 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 	    if(dists.second - dists.first <= max_tolerable_diff) for(const auto& i : spannable_indeces) cluster_labels[i] = 0;
 	    else {
 	    	int* labels = new int[spannable_indeces.size()];
-	    	double dist_final = dists.second == 0.01 ? dists.second : dists.second - 0.01;
+	    	double dist_final = dists.second == 0.01 ? dists.second : dists.second - 0.02;
 		    cutree_cdist(spannable_indeces.size(), merge, height, dist_final, labels);
 		    int total_alleles = 0;
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
