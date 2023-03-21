@@ -20,6 +20,7 @@ void command_assemble_parser(int argc, char** argv){
       ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>())
       ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
+      ("p, non-primary", "Use non-primmary read-alignments.", cxxopts::value<bool>()->default_value("false"))
       ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("50"))
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
@@ -40,6 +41,7 @@ void command_assemble_parser(int argc, char** argv){
       const std::string bed = result["bed"].as<std::string>();
       const std::string reference = result["reference"].as<std::string>();
       const bool reads_only = result["reads-only"].as<bool>();
+      params.nonprimary = result["non-primary"].as<bool>();
       params.init_offset(result["offset"].as<int>());
       params.init_max_alleles(result["max-alleles"].as<int>());
       params.init_mapq(result["mapq"].as<int>());

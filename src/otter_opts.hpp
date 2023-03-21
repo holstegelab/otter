@@ -14,6 +14,7 @@ class OtterOpts {
 		double bandwidth;
 		int flank;
 		double min_sim;
+		bool nonprimary;
 
 		void init_offset(int);
 		void init_max_alleles(int);

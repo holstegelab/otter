@@ -209,7 +209,7 @@ void parse_alignments(const OtterOpts& params, const BED& bed, const BamInstance
 	if(iter == nullptr) std::cerr << "(" << antimestamp() << "): WARNING: query failed at region " <<  bed.toBEDstring() << std::endl;
 	else{
 		while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0){
-			if(bam_inst.read->core.qual >= params.mapq && !(bam_inst.read->core.flag & BAM_FSECONDARY || bam_inst.read->core.flag & BAM_FSUPPLEMENTARY)){
+			if(bam_inst.read->core.qual >= params.mapq && (params.nonprimary || !(bam_inst.read->core.flag & BAM_FSECONDARY || bam_inst.read->core.flag & BAM_FSUPPLEMENTARY))){
 				std::string name = (char*)bam_inst.read->data;
 				std::string seq;
 				ParsingStatus msg;
