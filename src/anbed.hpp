@@ -14,8 +14,10 @@ class BED {
     std::string chr;
     uint32_t start;
     uint32_t end;
+    BED();
     BED(std::string, uint32_t, uint32_t);
     BED(const std::string&);
+    void parse_multibed(const std::string&);
     std::string toString() const;
     std::string toBEDstring() const;
 };

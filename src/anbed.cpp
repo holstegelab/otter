@@ -2,11 +2,13 @@
 #include "antimestamp.hpp"
 #include <string>
 
+BED::BED(){};
+
 BED::BED(std::string c, uint32_t s, uint32_t e): chr(c), start(s), end(e){};
 
 BED::BED(const std::string& line){
   if(line.empty()){
-    std::cerr << '(' << antimestamp() << "): Cannot parse empty GFF line\n";
+    std::cerr << '(' << antimestamp() << "): Cannot parse empty BED line\n";
     exit(1);
   } else {
       int index = 0;
@@ -32,6 +34,33 @@ BED::BED(const std::string& line){
         }
         ++index;
       }       
+  }
+}
+
+void BED::parse_multibed(const std::string& line)
+{
+  if(line.empty()){
+    fprintf(stderr,"Cannot parse empty BED line\n");
+    exit(1);
+  } 
+  else {
+      int index = 0;
+      std::string value;
+      std::istringstream stream(line);
+      while(std::getline(stream, value, ':')) {
+        if(index == 0) chr = value;
+        else if(index == 1){
+          int index2 = 0;
+          std::string value2;
+          std::istringstream stream2(value);
+          while(std::getline(stream2, value2, '-')) {
+            if(index2 == 0) start = static_cast<uint32_t>(std::stoul(value2));
+            else if(index2 == 1) end = static_cast<uint32_t>(std::stoul(value2));
+            ++index2;
+          }
+        }
+        ++index;
+      }
   }
 }
 

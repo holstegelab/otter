@@ -6,6 +6,7 @@
 #include "otter_opts.hpp"
 #include "pairwise_alignment.hpp"
 #include "fasta_helper.hpp"
+#include "formatter.hpp"
 #include "BS_thread_pool.hpp"
 #include <htslib/faidx.h>
 #include "bindings/cpp/WFAligner.hpp"
@@ -40,11 +41,14 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 				if(alignment_block.names.size() == 0) std::cerr << '(' << antimestamp() << "): WARNING: no reads found at region " << local_bed.toBEDstring() << '\n';
 				else if ((int)alignment_block.names.size() > params.max_cov) std::cerr << '(' << antimestamp() << "): WARNING: abnormal coverage for region " << local_bed.toBEDstring() << " (" << alignment_block.names.size() << "x)\n";
 				else{
-					std::string region_str = bed_regions[i].toBEDstring();
+					std::string region_str = local_bed.toBEDstring();
 					if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
 					if(reads_only){
 						std_out_mtx.lock();
-						for(int i = 0; i < (int)alignment_block.names.size(); ++i) std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
+						for(int i = 0; i < (int)alignment_block.names.size(); ++i) {
+							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r);
+							else std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
+						}
 						std_out_mtx.unlock();
 					}
 					else{
@@ -64,8 +68,11 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							for(int j = 0; j < (int)consensus_seqs.size(); ++j){
 								int cov = 0;
 								for(const auto l : labels) if(l == j) ++cov;
-								std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() <<  '\n';
-								std::cout << consensus_seqs[j] << '\n';
+								if(params.is_sam) output_fa2sam("otter_assembly", local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1);
+								else{
+									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() <<  '\n';
+									std::cout << consensus_seqs[j] << '\n';
+								}
 							}
 							std_out_mtx.unlock();
 						}
@@ -88,5 +95,14 @@ void assemble(const std::vector<std::string>& bams, const std::string& bed, cons
 
  	std::vector<BED> bed_regions;
  	for(const auto& chr : map_beds) for(const auto& bed : chr.second) bed_regions.emplace_back(bed);
+ 	if(params.is_sam){
+		BamInstance bam_inst;
+		bam_inst.init(bams.front(), true);
+		for(int i = 0; i < bam_inst.header->n_targets; ++i){
+			std::cout << "@SQ\tSN:" << bam_inst.header->target_name[i] << "\tLN:" << bam_inst.header->target_len[i] << '\n';
+		}
+		if(!params.read_group.empty()) std::cout << "@RG\tID:" << params.read_group << '\n';
+		bam_inst.destroy();
+	}
  	for(const auto& bam : bams) general_process(params, bam, bed_regions, reference, reads_only, pool);
 }

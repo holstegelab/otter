@@ -2,6 +2,7 @@
 #define OTTEROPTS_HPP
 
 #include <cstdint>
+#include <string>
 
 class OtterOpts {
 	public:
@@ -15,6 +16,8 @@ class OtterOpts {
 		int flank;
 		double min_sim;
 		bool nonprimary;
+		bool is_sam;
+		std::string read_group;
 
 		void init_offset(int);
 		void init_max_alleles(int);

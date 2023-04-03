@@ -16,9 +16,13 @@ void command_assemble_parser(int argc, char** argv){
       .set_width(120)
       .set_tab_expansion()
       .custom_help("[parameters] <BAM>")
-      .add_options()
+      .add_options(" REQUIRED")
+      ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""));
+    options
+      .add_options("OPTIONAL")
       ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>())
-      ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""))
+      ("sam", "Output in SAM-format.", cxxopts::value<bool>()->default_value("false"))
+      ("R, read-group", "Output with this read-group tag (only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
       ("p, non-primary", "Use non-primmary read-alignments.", cxxopts::value<bool>()->default_value("false"))
       ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("50"))
@@ -42,6 +46,8 @@ void command_assemble_parser(int argc, char** argv){
       const std::string reference = result["reference"].as<std::string>();
       const bool reads_only = result["reads-only"].as<bool>();
       params.nonprimary = result["non-primary"].as<bool>();
+      params.is_sam = result["sam"].as<bool>();
+      params.read_group = result["read-group"].as<std::string>();
       params.init_offset(result["offset"].as<int>());
       params.init_max_alleles(result["max-alleles"].as<int>());
       params.init_mapq(result["mapq"].as<int>());
