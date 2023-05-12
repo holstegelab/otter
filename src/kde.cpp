@@ -24,7 +24,7 @@ double KDE::f(double x) const
 
 void KDE::maximas(const std::vector<double>& densities, std::vector<std::pair<int,double>>& maxs) const
 {
-	int width = 1;
+	//int width = 1;
 	std::vector<std::pair<int,double>> mins;
 	bool find_maxima = true;
 	double last_sum = 0.0;
@@ -32,8 +32,10 @@ void KDE::maximas(const std::vector<double>& densities, std::vector<std::pair<in
 	for(int i = 1; i < (int)densities.size() - 1; ++i){
 		double sum = 0.0;
 		sum += densities[i];
-		for(int j = 0; j < width; ++j) sum += densities[i - (width * j)];
-		for(int j = 0; j < width; ++j) sum += densities[i + (width * j)];
+		sum += densities[i - 1];
+		sum += densities[i + 1];
+		//for(int j = 0; j < width; ++j) sum += densities[i - 1];//(width * j)];
+		//for(int j = 0; j < width; ++j) sum += densities[i + 1];//(width * j)];
 		if(find_maxima){
 			if(sum < last_sum) {
 				find_maxima = false;
@@ -50,4 +52,5 @@ void KDE::maximas(const std::vector<double>& densities, std::vector<std::pair<in
 		last_sum_i = i;
 	}
 	if(find_maxima) maxs.emplace_back(std::make_pair(last_sum_i, last_sum));
+	//for(const auto& m : maxs) std::cout << m.first << '\t' << m.second << '\n';
 }
