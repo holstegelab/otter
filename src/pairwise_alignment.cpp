@@ -284,7 +284,6 @@ void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std:
 				}
 				ses[label] = local_distances;
 			}
-			for(const auto& d : local_distances) std::cout << d << '\n';
 		}
 	}
 }
