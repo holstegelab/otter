@@ -83,10 +83,12 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 								int cov = 0;
 								const double se = compute_se(ses[j]);
 								for(const auto l : labels) if(l == j) ++cov;
-								std::string assembly_name = region_str + "_" + std::to_string(j);
-								if(params.is_sam) output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, se);
+								if(params.is_sam) {
+									std::string assembly_name = region_str + "_" + std::to_string(j);
+									output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, se);
+								}
 								else{
-									std::cout << '>' << assembly_name << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << se << '\n';
+									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << se << '\n';
 									std::cout << consensus_seqs[j] << '\n';
 								}
 							}
