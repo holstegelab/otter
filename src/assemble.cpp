@@ -15,7 +15,20 @@
 #include <thread>
 #include <map>
 #include <mutex>
+#include <cmath>
 
+double compute_se(const std::vector<double> values)
+{
+	if(values.empty()) return -1.0;
+	else{
+		double u = 0.0, n = 0.0;
+		for(const auto& v : values) u += v;
+		u /= values.size();
+		for(const auto& v : values) n += std::pow(v - u, 2.0);
+		return std::sqrt(n/(values.size() - 1));
+	}
+	
+}
 
 void general_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, const bool& reads_only, BS::thread_pool& pool)
 {
@@ -46,7 +59,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 					if(reads_only){
 						std_out_mtx.lock();
 						for(int i = 0; i < (int)alignment_block.names.size(); ++i) {
-							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r);
+							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1.0);
 							else std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
 						}
 						std_out_mtx.unlock();
@@ -61,16 +74,19 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							otter_hclust(params.max_alleles, params.bandwidth, params.max_error, spannable_indeces, distmatrix, aligner, alignment_block, labels);
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\n';
 							std::vector<std::string> consensus_seqs;
-							otter_rapid_consensus(spannable_indeces, labels, distmatrix, aligner2, alignment_block, consensus_seqs);
+							std::vector<std::vector<double>> ses;
+							otter_rapid_consensus(spannable_indeces, labels, distmatrix, aligner2, alignment_block, consensus_seqs, ses);
 							otter_nonspanning_assigment(params.min_sim, params.max_error, alignment_block, aligner, labels);
 							std_out_mtx.lock();
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\t' << alignment_block.statuses[j].spanning_l << '\t' << alignment_block.statuses[j].spanning_r << '\t' << alignment_block.statuses[j].alignment_coords.first << '\t' << alignment_block.statuses[j].alignment_coords.second << '\n';
 							for(int j = 0; j < (int)consensus_seqs.size(); ++j){
 								int cov = 0;
+								const double se = compute_se(ses[j]);
 								for(const auto l : labels) if(l == j) ++cov;
-								if(params.is_sam) output_fa2sam("otter_assembly", local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1);
+								std::string assembly_name = region_str + "_" + std::to_string(j);
+								if(params.is_sam) output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, se);
 								else{
-									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() <<  '\n';
+									std::cout << '>' << assembly_name << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << se << '\n';
 									std::cout << consensus_seqs[j] << '\n';
 								}
 							}

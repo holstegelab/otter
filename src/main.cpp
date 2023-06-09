@@ -10,6 +10,7 @@
 void printHelp(){
    std::cout << ("Usage:\n otter [command]") << std::endl;
    std::cout << ("      assemble      Run local assembly across a given set of target regions.") << std::endl;
+   std::cout << ("      fa2sam        Convert (otter) fasta file to SAM-format.") << std::endl;
  }
 
 /**

@@ -29,6 +29,7 @@ void fa2sam(const std::string& ref, const std::string& rg, const std::vector<std
 			local_bed.parse_multibed(bed);
 			int acov = 1;
 			int tcov = 1;
+			double se = -1.0;
 			if(seq->comment.s != nullptr){
 				const std::string comment = seq->comment.s;
 				std::istringstream stream(comment);
@@ -37,10 +38,11 @@ void fa2sam(const std::string& ref, const std::string& rg, const std::vector<std
 				while(std::getline(stream, value, ' ')){
 					if(index == 0) acov = std::stoi(value);
 					else if(index == 1) tcov = std::stoi(value);
+					else if(index == 2) se = std::stod(value);
 					++index;
 				}
 			}
-			output_fa2sam("otter_assembly", local_bed.chr, local_bed.start, local_bed.end, sequence, rg, acov, tcov, -1 , -1);
+			output_fa2sam(bed, local_bed.chr, local_bed.start, local_bed.end, sequence, rg, acov, tcov, -1 , -1, se);
 		}
 		kseq_destroy(seq);
 		gzclose(fp);

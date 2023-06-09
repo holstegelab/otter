@@ -240,17 +240,21 @@ void otter_nonspanning_assigment(const double& min_sim, const double& max_error,
 	}
 }
 
-void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std::vector<int>& labels, const DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<std::string>& consensus_seqs)
+void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std::vector<int>& labels, const DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<std::string>& consensus_seqs, std::vector<std::vector<double>>& ses)
 {
 	std::vector<int> unique_labels = labels;
 	_set_unique_labels(unique_labels);
 	consensus_seqs.resize(unique_labels.size());
+	ses.resize(unique_labels.size());
 	for(int label_i = 0; label_i < (int)unique_labels.size(); ++label_i){
 		int label = unique_labels[label_i];
 		if(label >= 0){
 			std::vector<int> spannable_indeces_cluster;
 			for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[spannable_indeces[i]] == label) spannable_indeces_cluster.emplace_back(i);
-			if(spannable_indeces_cluster.size() < 3) consensus_seqs[label] = sequences.seqs[spannable_indeces[spannable_indeces_cluster.front()]];
+			std::vector<double> local_distances;
+			if(spannable_indeces_cluster.size() < 3) {
+				consensus_seqs[label] = sequences.seqs[spannable_indeces[spannable_indeces_cluster.front()]];
+			}
 			else {
 				std::vector<uint32_t> local_indeces;
 				for(const auto& i : spannable_indeces_cluster) local_indeces.emplace_back((uint32_t)i);
@@ -273,7 +277,14 @@ void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std:
 				float t = 0.2;
 				graph.adjust_weights(c, t);
 				graph.consensus(consensus_seqs[label]);
+				for(int i = 0; i < (int)spannable_indeces_cluster.size(); ++i){
+					for(int j = i + 1; j < (int)spannable_indeces_cluster.size(); ++j){
+						local_distances.emplace_back(distmatrix.get_dist(spannable_indeces_cluster[i], spannable_indeces_cluster[j]));
+					}
+				}
+				ses[label] = local_distances;
 			}
+			for(const auto& d : local_distances) std::cout << d << '\n';
 		}
 	}
 }

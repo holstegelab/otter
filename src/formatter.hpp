@@ -11,5 +11,6 @@ void output_fa2sam(
 	const int& acov, 
 	const int& tc, 
 	const int& spanning_l, 
-	const int& spanning_r
+	const int& spanning_r,
+	const double& se
 	);

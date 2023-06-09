@@ -72,6 +72,7 @@ void otter_rapid_consensus(
 	const std::vector<int>& labels, const DistMatrix& distmarix, 
 	wfa::WFAligner& aligner,
 	AlignmentBlock& sequences, 
-	std::vector<std::string>& consensus
+	std::vector<std::string>& consensus,
+	std::vector<std::vector<double>>& ses
 );
 

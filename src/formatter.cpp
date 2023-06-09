@@ -3,7 +3,7 @@
 #include <iostream>
 #include "otter_opts.hpp"
 
-void output_fa2sam(const std::string& read, const std::string& chr, const int& start, const int& end, const std::string& seq, const std::string& rg, const int& acov, const int& tc, const int& spanning_l, const int& spanning_r)
+void output_fa2sam(const std::string& read, const std::string& chr, const int& start, const int& end, const std::string& seq, const std::string& rg, const int& acov, const int& tc, const int& spanning_l, const int& spanning_r, const double& se)
 {
 	std::string pseudo_qual(seq.size(), '!');
 	if(!rg.empty()) pseudo_qual += "\tRG:Z:" + rg;
@@ -18,5 +18,6 @@ void output_fa2sam(const std::string& read, const std::string& chr, const int& s
 		else sp = 'n';
 		std::cout << "\tsp:A:" << sp;
 	}
+	std::cout << "\tse:f:" << se;
 	std::cout << '\n';
 }
