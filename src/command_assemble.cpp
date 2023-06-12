@@ -25,7 +25,7 @@ void command_assemble_parser(int argc, char** argv){
       ("R, read-group", "Output with this read-group tag (only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
       ("p, non-primary", "Use non-primmary read-alignments.", cxxopts::value<bool>()->default_value("false"))
-      ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("50"))
+      ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("31"))
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
