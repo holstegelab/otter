@@ -29,6 +29,7 @@ void command_assemble_parser(int argc, char** argv){
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
+      ("F, cov-fraction", "Minimum coverage fraction per repeat", cxxopts::value<double>()->default_value("0.1"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.025"))
       ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
@@ -52,6 +53,7 @@ void command_assemble_parser(int argc, char** argv){
       params.init_max_alleles(result["max-alleles"].as<int>());
       params.init_mapq(result["mapq"].as<int>());
       params.init_max_cov(result["max-cov"].as<int>());
+      params.init_min_cov_fraction(result["cov-fraction"].as<double>());
       params.init_threads(result["threads"].as<int>());
       params.init_max_error(result["max-error"].as<double>());
       params.init_bandwidth(result["bandwidth"].as<double>());

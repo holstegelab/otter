@@ -64,7 +64,7 @@ std::pair<double, double> otter_find_clustering_dist(const double& bandwidth, co
 	}
 }
 
-void otter_hclust(const int& max_alleles, const double& bandwidth, const double& max_tolerable_diff, const std::vector<int>& spannable_indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<int>& cluster_labels)
+void otter_hclust(const int& max_alleles, const double& bandwidth, const double& max_tolerable_diff, const double& min_cov_fraction, const std::vector<int>& spannable_indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<int>& cluster_labels, int& initial_clusters)
 {
 	cluster_labels.resize(sequences.names.size(), -1);
 	if(spannable_indeces.size() == 1) cluster_labels[spannable_indeces[0]] = 0;
@@ -88,7 +88,10 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 	    int* merge = new int[2*(spannable_indeces.size()-1)];
 	    double* height = new double[spannable_indeces.size()-1];
 	    hclust_fast(spannable_indeces.size(), distmat, HCLUST_METHOD_AVERAGE, merge, height);
-	    if(dists.second - dists.first <= max_tolerable_diff) for(const auto& i : spannable_indeces) cluster_labels[i] = 0;
+	    if(dists.second - dists.first <= max_tolerable_diff) {
+	    	for(const auto& i : spannable_indeces) cluster_labels[i] = 0;
+	    	initial_clusters = 1;
+	    }
 	    else {
 	    	int* labels = new int[spannable_indeces.size()];
 	    	double dist_final = dists.second == 0.01 ? dists.second : dists.second - 0.02;
@@ -96,37 +99,65 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 		    int total_alleles = 0;
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
 		    ++total_alleles;
-			if(total_alleles > max_alleles) {
-				int total_alleles_local = max_alleles + 1;
-				cutree_k(spannable_indeces.size(), merge, total_alleles_local, labels);
-				std::vector<int> label_counts(total_alleles_local);
+			initial_clusters = total_alleles;
+			int min_cov = int(spannable_indeces.size()*min_cov_fraction);
+			if(max_alleles != 0 && total_alleles > max_alleles) {
+				std::vector<int> label_counts(total_alleles);
 				for(int i = 0; i < (int)spannable_indeces.size(); ++i) ++label_counts[labels[i]];
-				std::vector<int> label_counts_srt = label_counts;
-				sort(label_counts_srt.begin(), label_counts_srt.end());
-				int second_max_count = label_counts_srt[total_alleles_local - 2];
-
-				if(second_max_count == 1) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
+				bool is_only_singletons = true;
+				for(const auto& c : label_counts) if(c >= min_cov) is_only_singletons = false;
+				if(is_only_singletons) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
 				else{
-					int min_label = -1;
-					for(int i = 0; i < total_alleles_local; ++i) if(min_label < 0 || label_counts[i] < label_counts[min_label]) min_label = i;
-					
-					std::vector<double> label_sum_dists(total_alleles_local);
-					for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-						if(labels[i] == min_label){
-							for(int j = 0; j < (int)spannable_indeces.size();++j){
-								if(labels[j] != min_label){
-									label_sum_dists[labels[j]] += distmatrix.get_dist(i,j);
+					std::vector<int> label_counts_srt = label_counts;
+					sort(label_counts_srt.begin(), label_counts_srt.end(), [](const int& a, const int& b) -> bool { return a > b; });
+					if(label_counts_srt[0] < min_cov) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
+					else{
+						int outlier_clusters_n = 0;
+						for(const auto& c : label_counts_srt) if(c < min_cov) ++outlier_clusters_n;
+						int seed_clusters_n = total_alleles - outlier_clusters_n;
+						if(seed_clusters_n < max_alleles || seed_clusters_n > max_alleles) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
+						else{
+							std::vector<int> outlier_clusters;
+							std::vector<int> seed_clusters;
+							for(int i = 0; i < total_alleles; ++i) {
+								if(label_counts[i] <= label_counts_srt[max_alleles]) outlier_clusters.emplace_back(i);
+								else seed_clusters.emplace_back(i);
+							}
+							/**
+							for(const auto& s : seed_clusters) {
+								for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "seed\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
+							}
+							for(const auto& s : outlier_clusters) {
+								for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "outlier\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
+							}
+							*/
+
+							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+								for(const auto& o : outlier_clusters) if(labels[i] == o){
+									labels[i] = -1;
+									break;
+								}
+							}
+
+							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+								if(labels[i] == -1){
+									int closest_j;
+									double min_dist = 100000.0;
+									for(int j = 0; j < (int)spannable_indeces.size(); ++j){
+										if(i != j && labels[j] != -1){
+											double j_dist = distmatrix.get_dist(i, j);
+											if(j_dist < min_dist){
+												closest_j = j;
+												min_dist = j_dist;
+											}
+										} 
+									}
+									labels[i] = labels[closest_j];
 								}
 							}
 						}
 					}
-					for(int i = 0; i < total_alleles_local; ++i) if(i != min_label) label_sum_dists[i] /= label_counts[i];
-					int min_target_label = -1;
-					for(int i = 0; i < total_alleles_local; ++i) if(i != min_label && (min_target_label == -1 || label_sum_dists[i] < label_sum_dists[min_target_label])) min_target_label = i;
-					for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
-						if(labels[i] == min_label) labels[i] = min_target_label;
-						if(labels[i] > min_label) --labels[i];
-					}
+
 				}
 			}
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) {

@@ -15,7 +15,7 @@ void OtterOpts::init_offset(int _offset)
 
 void OtterOpts::init_max_alleles(int _max_alleles)
 {
-	if(_max_alleles > 0) max_alleles = _max_alleles;
+	if(_max_alleles >= 0) max_alleles = _max_alleles;
 	else{
 		std::cout << '(' << antimestamp() << "): Invalid maximum-alleles value: " << _max_alleles <<  std::endl;
 		exit(0);
@@ -36,6 +36,15 @@ void OtterOpts::init_max_cov(int _max_cov)
 	if(_max_cov >= 0) max_cov = _max_cov;
 	else{
 		std::cout << '(' << antimestamp() << "): Invalid max-coverage value: " << _max_cov <<  std::endl;
+		exit(0);
+	}
+}
+
+void OtterOpts::init_min_cov_fraction(double _min_cov_fraction)
+{
+	if(_min_cov_fraction >= 0.0 && _min_cov_fraction <= 1.0) min_cov_fraction = _min_cov_fraction;
+	else{
+		std::cout << '(' << antimestamp() << "): Invalid _min_cov_fraction value: " << _min_cov_fraction <<  std::endl;
 		exit(0);
 	}
 }

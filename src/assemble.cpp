@@ -59,7 +59,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 					if(reads_only){
 						std_out_mtx.lock();
 						for(int i = 0; i < (int)alignment_block.names.size(); ++i) {
-							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1.0);
+							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1, -1.0);
 							else std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
 						}
 						std_out_mtx.unlock();
@@ -71,7 +71,8 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << '>' << alignment_block.names[j] << ' ' << alignment_block.statuses[j].is_spanning() << '\n' << alignment_block.seqs[j] << '\n';
 							DistMatrix distmatrix(spannable_indeces.size());
 							std::vector<int> labels;
-							otter_hclust(params.max_alleles, params.bandwidth, params.max_error, spannable_indeces, distmatrix, aligner, alignment_block, labels);
+							int initial_clusters;
+							otter_hclust(params.max_alleles, params.bandwidth, params.max_error, params.min_cov_fraction, spannable_indeces, distmatrix, aligner, alignment_block, labels, initial_clusters);
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\n';
 							std::vector<std::string> consensus_seqs;
 							std::vector<std::vector<double>> ses;
@@ -81,14 +82,21 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\t' << alignment_block.statuses[j].spanning_l << '\t' << alignment_block.statuses[j].spanning_r << '\t' << alignment_block.statuses[j].alignment_coords.first << '\t' << alignment_block.statuses[j].alignment_coords.second << '\n';
 							for(int j = 0; j < (int)consensus_seqs.size(); ++j){
 								int cov = 0;
-								const double se = compute_se(ses[j]);
 								for(const auto l : labels) if(l == j) ++cov;
+								double se; 
+								if(cov == 1) se = -1;
+								else if(cov > 2) se = compute_se(ses[j]);
+								else {
+									std::vector<int> local_cluster_indeces;
+									for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[k] == j) local_cluster_indeces.emplace_back(k);
+									se = distmatrix.get_dist(local_cluster_indeces[0], local_cluster_indeces[1]);
+								}
 								if(params.is_sam) {
 									std::string assembly_name = region_str + "_" + std::to_string(j);
-									output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, se);
+									output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, initial_clusters, se);
 								}
 								else{
-									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << se << '\n';
+									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << initial_clusters << ' ' << se << '\n';
 									std::cout << consensus_seqs[j] << '\n';
 								}
 							}

@@ -12,5 +12,6 @@ void output_fa2sam(
 	const int& tc, 
 	const int& spanning_l, 
 	const int& spanning_r,
+	const int& initial_clusters,
 	const double& se
 	);

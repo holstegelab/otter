@@ -30,12 +30,14 @@ std::pair<double,double> otter_find_clustering_dist(
 void otter_hclust(
 	const int& max_alleles,
 	const double& bandwidth,
-	const double&, 
+	const double&,
+	const double& min_cov_fraction,
 	const std::vector<int>&, 
 	DistMatrix& distmatrix,
 	wfa::WFAligner& aligner, 
 	AlignmentBlock& sequences,
-	std::vector<int>& cluster_labels
+	std::vector<int>& cluster_labels,
+	int& initial_clusters
 );
 
 void otter_realignment2(
