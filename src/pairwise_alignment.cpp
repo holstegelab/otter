@@ -141,7 +141,7 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 										labels[i] = -1;
 										break;
 									}
-									if(seed_clusters.size() && labels[i] == seed_clusters[0]){
+									if(seed_clusters.size() == 1 && labels[i] == seed_clusters[0]){
 										labels[i] = 0;
 										break;
 									}
