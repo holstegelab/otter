@@ -82,14 +82,14 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\t' << alignment_block.statuses[j].spanning_l << '\t' << alignment_block.statuses[j].spanning_r << '\t' << alignment_block.statuses[j].alignment_coords.first << '\t' << alignment_block.statuses[j].alignment_coords.second << '\n';
 							for(int j = 0; j < (int)consensus_seqs.size(); ++j){
 								int spanning_cov = 0, cov = 0;
-								for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[k] == j) ++spanning_cov;
+								for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[spannable_indeces[k]] == j) ++spanning_cov;
 								for(const auto& l : labels) if(l == j) ++cov;
 								double se; 
 								if(spanning_cov == 1) se = -1;
 								else if(spanning_cov > 2) se = compute_se(ses[j]);
 								else {
 									std::vector<int> local_cluster_indeces;
-									for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[k] == j) local_cluster_indeces.emplace_back(k);
+									for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[spannable_indeces[k]] == j) local_cluster_indeces.emplace_back(k);
 									se = distmatrix.get_dist(local_cluster_indeces[0], local_cluster_indeces[1]);
 								}
 								if(params.is_sam) {
