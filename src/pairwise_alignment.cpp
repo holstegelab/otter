@@ -101,7 +101,7 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 		    ++total_alleles;
 			initial_clusters = total_alleles;
 			int min_cov = int(spannable_indeces.size()*min_cov_fraction);
-			if(max_alleles != 0 && total_alleles > max_alleles) {
+			if(max_alleles != 0) {
 				std::vector<int> label_counts(total_alleles);
 				for(int i = 0; i < (int)spannable_indeces.size(); ++i) ++label_counts[labels[i]];
 				bool is_only_singletons = true;
@@ -113,14 +113,17 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 					if(label_counts_srt[0] < min_cov) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
 					else{
 						int outlier_clusters_n = 0;
-						for(const auto& c : label_counts_srt) if(c < min_cov) ++outlier_clusters_n;
-						int seed_clusters_n = total_alleles - outlier_clusters_n;
-						if(seed_clusters_n < max_alleles || seed_clusters_n > max_alleles) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
+						int seed_clusters_n = 0;
+						for(const auto& c : label_counts_srt) {
+							if(c < min_cov) ++outlier_clusters_n;
+							else if(c >= min_cov) ++seed_clusters_n;
+						}
+						if(seed_clusters_n == 0 || seed_clusters_n > max_alleles) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
 						else{
 							std::vector<int> outlier_clusters;
 							std::vector<int> seed_clusters;
 							for(int i = 0; i < total_alleles; ++i) {
-								if(label_counts[i] <= label_counts_srt[max_alleles]) outlier_clusters.emplace_back(i);
+								if(label_counts[i] < min_cov) outlier_clusters.emplace_back(i);
 								else seed_clusters.emplace_back(i);
 							}
 							/**
@@ -130,14 +133,21 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 							for(const auto& s : outlier_clusters) {
 								for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "outlier\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
 							}
-							*/
+						   */
 
 							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-								for(const auto& o : outlier_clusters) if(labels[i] == o){
-									labels[i] = -1;
-									break;
+								for(const auto& o : outlier_clusters) {
+									if(labels[i] == o){
+										labels[i] = -1;
+										break;
+									}
+									if(seed_clusters.size() && labels[i] == seed_clusters[0]){
+										labels[i] = 0;
+										break;
+									}
 								}
 							}
+							
 
 							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
 								if(labels[i] == -1){
@@ -313,6 +323,7 @@ void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std:
 						local_distances.emplace_back(distmatrix.get_dist(spannable_indeces_cluster[i], spannable_indeces_cluster[j]));
 					}
 				}
+				
 				ses[label] = local_distances;
 			}
 		}
