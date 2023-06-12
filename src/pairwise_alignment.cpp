@@ -141,13 +141,19 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 										labels[i] = -1;
 										break;
 									}
-									if(seed_clusters.size() == 1 && labels[i] == seed_clusters[0]){
-										labels[i] = 0;
+								}
+							}
+							
+							std::vector<int> readjusted_seed_cluster_labels(seed_clusters.size());
+							for(int i = 0; i < seed_clusters.size(); ++i) readjusted_seed_cluster_labels[i] = i;
+							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+								for(int j = 0; j < seed_clusters.size(); ++j) {
+									if(labels[i] == seed_clusters[j]){
+										labels[i] = readjusted_seed_cluster_labels[j];
 										break;
 									}
 								}
 							}
-							
 
 							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
 								if(labels[i] == -1){
