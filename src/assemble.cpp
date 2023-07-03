@@ -116,12 +116,10 @@ void assemble(const std::vector<std::string>& bams, const std::string& bed, cons
 {
  	BS::thread_pool pool(params.threads);
 
- 	//load bed file
- 	BedMap map_beds;
- 	parse_bed_file(bed, map_beds);
 
  	std::vector<BED> bed_regions;
- 	for(const auto& chr : map_beds) for(const auto& bed : chr.second) bed_regions.emplace_back(bed);
+ 	parse_bed_file(bed, bed_regions);
+
  	if(params.is_sam){
 		BamInstance bam_inst;
 		bam_inst.init(bams.front(), true);

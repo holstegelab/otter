@@ -7,3 +7,8 @@ int command_fa2sam(
 	int, 
 	char**
 );
+
+int command_genotype(
+	int, 
+	char**
+);

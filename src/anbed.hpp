@@ -27,7 +27,7 @@ typedef std::map<std::string, std::vector<BED>> BedMap;
 
 void parse_bed_file(
   const std::string, 
-  BedMap&
+  std::vector<BED>&
 );
 
 #endif

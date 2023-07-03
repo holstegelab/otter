@@ -145,9 +145,9 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 							}
 							
 							std::vector<int> readjusted_seed_cluster_labels(seed_clusters.size());
-							for(int i = 0; i < seed_clusters.size(); ++i) readjusted_seed_cluster_labels[i] = i;
+							for(int i = 0; i < (int)seed_clusters.size(); ++i) readjusted_seed_cluster_labels[i] = i;
 							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-								for(int j = 0; j < seed_clusters.size(); ++j) {
+								for(int j = 0; j < (int)seed_clusters.size(); ++j) {
 									if(labels[i] == seed_clusters[j]){
 										labels[i] = readjusted_seed_cluster_labels[j];
 										break;
@@ -297,18 +297,44 @@ void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std:
 		int label = unique_labels[label_i];
 		if(label >= 0){
 			std::vector<int> spannable_indeces_cluster;
-			for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[spannable_indeces[i]] == label) spannable_indeces_cluster.emplace_back(i);
+			std::vector<int> spannable_indeces_cluster_l;
+			for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
+				if(labels[spannable_indeces[i]] == label) {
+					spannable_indeces_cluster.emplace_back(i);
+					spannable_indeces_cluster_l.emplace_back(sequences.seqs[i].size());
+				}
+			}
 			std::vector<double> local_distances;
 			if(spannable_indeces_cluster.size() < 3) {
 				consensus_seqs[label] = sequences.seqs[spannable_indeces[spannable_indeces_cluster.front()]];
 			}
 			else {
+				for(int i = 0; i < (int)spannable_indeces_cluster.size(); ++i){
+					for(int j = i + 1; j < (int)spannable_indeces_cluster.size(); ++j){
+						local_distances.emplace_back(distmatrix.get_dist(spannable_indeces_cluster[i], spannable_indeces_cluster[j]));
+					}
+				}
+				
+				ses[label] = local_distances;
+
+				bool is_k_short = false;
+				for(const auto& l : spannable_indeces_cluster_l) {
+					if(l < 5){
+						is_k_short = true;
+						break;
+					}
+				}
 				std::vector<uint32_t> local_indeces;
 				for(const auto& i : spannable_indeces_cluster) local_indeces.emplace_back((uint32_t)i);
 				uint32_t representative_i = distmatrix.get_min_dist_i(local_indeces);
 				uint32_t k = 3;
 				uint32_t g = 2;
 				uint32_t l = 2;
+				if(is_k_short){
+					k = 1;
+					g = 1;
+					l = 1;
+				}
 				ansparc_graph graph;
 				graph.init(sequences.seqs[spannable_indeces[representative_i]], k, g, l);
 				for(const auto& i : local_indeces){
@@ -323,14 +349,8 @@ void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std:
 				if(spannable_indeces_cluster.size() < 4) c = 1.0f;
 				float t = 0.2;
 				graph.adjust_weights(c, t);
+				graph.printDOT();
 				graph.consensus(consensus_seqs[label]);
-				for(int i = 0; i < (int)spannable_indeces_cluster.size(); ++i){
-					for(int j = i + 1; j < (int)spannable_indeces_cluster.size(); ++j){
-						local_distances.emplace_back(distmatrix.get_dist(spannable_indeces_cluster[i], spannable_indeces_cluster[j]));
-					}
-				}
-				
-				ses[label] = local_distances;
 			}
 		}
 	}

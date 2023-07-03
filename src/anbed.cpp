@@ -75,32 +75,13 @@ std::string BED::toBEDstring() const
 }
 
 
-void parse_bed_file(const std::string bedfile, BedMap& bedmap)
+void parse_bed_file(const std::string bedfile, std::vector<BED>& bed_vector)
 {
   std::ifstream inputbed(bedfile.c_str());
   std::string line;
   // Read the next line from File untill it reaches the end.
-  while (std::getline(inputbed, line)){
-    BED annotation = BED(line);
-    //check if chromosome already exists in index
-      auto it = bedmap.find(annotation.chr);
-      //exists, update key-value 
-      if (it != bedmap.end()) {
-        it->second.push_back(annotation);
-      }
-      //does not exist, create key,value entry
-      else {
-        //set temp vector of coords
-        std::vector<BED> localbeds;
-        //add current coord to temp vector
-        localbeds.push_back(annotation);
-        //add vector
-        bedmap[annotation.chr] = localbeds;
-      }
-  }
+  while (std::getline(inputbed, line)) bed_vector.emplace_back(line);
   inputbed.close();
 
-  int total = 0;
-  for(const auto& chr : bedmap) total += (int)chr.second.size();
-  std::cerr << '(' << antimestamp() << "): Loaded " << total << " total annotation(s) across " << bedmap.size() << " contig(s)\n";
+  std::cerr << '(' << antimestamp() << "): Loaded " << bed_vector.size() << " total annotation(s) across\n";
 }

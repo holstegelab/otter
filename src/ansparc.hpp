@@ -4,7 +4,7 @@
  * 
  * See https://peerj.com/articles/2016/ for details.
  * 
- * Last updated: 2022/09/16
+ * Last updated: 2023/07/03
  */
 
 #ifndef ANSPARC_HPP
@@ -89,9 +89,11 @@ inline void ansparc_graph::init(std::string& _b, uint32_t& _k, uint32_t& _g, uin
 	std::string kmer;
 
 	while(pos < backbone.size()){
-		if(pos + k <= backbone.size()) kmer = backbone.substr(pos, k); 
+		int d = (pos + k) - backbone.size();
+		if(d <= 0) kmer = backbone.substr(pos, k); //pos + k <= backbone.size()
 		else {
 			kmer = '-';
+			for(int i = 1; i < d; ++i) kmer += '-';
 			kmer += backbone.substr(pos);
 		}
 		insert_node(pos, kmer);
@@ -128,7 +130,6 @@ inline void ansparc_graph::insert_edge(uint32_t& source, uint32_t& sink) {
 
 inline void ansparc_graph::insert_alignment(std::string& cigar, std::string& seq)
 {
-
 	//project corresponding coordinates of cigar to bakebone (b) and seq (s)
 	std::vector<std::unique_ptr<uint32_t>> b_matched(cigar.size());
 	std::vector<std::unique_ptr<uint32_t>> s_matched(cigar.size());
@@ -172,8 +173,8 @@ inline void ansparc_graph::insert_alignment(std::string& cigar, std::string& seq
 				++last_cigar_i;
 			}
 			if(b_matched[cigar_i] != nullptr && *b_matched[cigar_i] < b_end) c_end = cigar_i;
-		}
-
+		}		
+		if(b_start + 1 >= backbone.size() && cigar.back() == 'I') ++c_end;
 		uint32_t inserted_node;
 		//identify corresponding indeces in seq
 		if(s_matched[c_start] != nullptr || s_matched[c_end] != nullptr) {
@@ -188,7 +189,9 @@ inline void ansparc_graph::insert_alignment(std::string& cigar, std::string& seq
 			}
 			//set seq to end
 			else if(s_matched[c_end] == nullptr) {
-				for(uint32_t i = c_start; i < c_end; ++i) if(cigar[i] == 'D') s_seq += '-'; else s_seq += seq[*s_matched[i]];
+				for(uint32_t i = c_start; i < c_end; ++i) {
+					if(cigar[i] != 'D') s_seq += '-'; else s_seq += seq[*s_matched[i]];
+				}
 				/**
 				 * 				uint32_t s_pos = *s_matched[c_start];
 				std::cout << "here " << s_pos << ' ' << seq.substr(c_start, c_end - c_start + 1) << '\n';
@@ -203,7 +206,7 @@ inline void ansparc_graph::insert_alignment(std::string& cigar, std::string& seq
 				&*/
 			}
 			//set seq accordingly
-			else {
+			else {		
 				uint32_t length = 1 + *s_matched[c_end]  - *s_matched[c_start];
 				if(length < k) for(uint32_t i = 0; i < (k - length); ++i) s_seq += '-';
 				s_seq += seq.substr(*s_matched[c_start], length);
@@ -331,7 +334,7 @@ inline void ansparc_graph::consensus(std::string& consensus_seq)
 
 	auto& last =  nodes.find(h_path.path.back())->second;
 	uint32_t last_l = true_seq_size(last);
-	if(last_l >= k) consensus_seq += last.substr(1);
+	if(last_l >= k) consensus_seq += last.substr(k - g);
 	else for(uint32_t j = 0; j < last.size(); ++j) if(last[j] != '-') consensus_seq += last[j];
 }
 
