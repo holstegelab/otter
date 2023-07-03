@@ -349,7 +349,6 @@ void otter_rapid_consensus(const std::vector<int>& spannable_indeces, const std:
 				if(spannable_indeces_cluster.size() < 4) c = 1.0f;
 				float t = 0.2;
 				graph.adjust_weights(c, t);
-				graph.printDOT();
 				graph.consensus(consensus_seqs[label]);
 			}
 		}
