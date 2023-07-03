@@ -190,7 +190,7 @@ inline void ansparc_graph::insert_alignment(std::string& cigar, std::string& seq
 			//set seq to end
 			else if(s_matched[c_end] == nullptr) {
 				for(uint32_t i = c_start; i < c_end; ++i) {
-					if(cigar[i] != 'D') s_seq += '-'; else s_seq += seq[*s_matched[i]];
+					if(cigar[i] == 'D') s_seq += '-'; else s_seq += seq[*s_matched[i]];
 				}
 				/**
 				 * 				uint32_t s_pos = *s_matched[c_start];
