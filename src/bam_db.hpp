@@ -19,7 +19,9 @@ void index_read_groups(
 
 void parse_bam_allele(
 	const std::string&, 
-	const int&, const std::map<std::string,int>&, 
+	const int&, 
+	const int&, 
+	const std::map<std::string,int>&, 
 	bam1_t*&, 
 	std::vector<std::string>&, 
 	std::vector<int>&

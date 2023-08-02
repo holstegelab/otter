@@ -12,3 +12,8 @@ int command_genotype(
 	int, 
 	char**
 );
+
+int command_length(
+	int, 
+	char**
+);

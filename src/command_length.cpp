@@ -1,15 +1,16 @@
-#include <vector>
 #include "commands.hpp"
 #include "cxxopts.hpp"
-#include "otter_opts.hpp"
-#include "genotype.hpp"
+#include "length.hpp"
+#include <string>
+#include <vector>
 
 /**
  * Method to parse CLI arguments using typical main parameters.
  */
-void command_genotype_parser(int argc, char** argv){
-  cxxopts::Options options(argv[0]);
+
+void command_length_parser(int argc, char** argv){
   try{
+    cxxopts::Options options(argv[0]);
     options
       .allow_unrecognised_options()
       .show_positional_help()
@@ -21,35 +22,30 @@ void command_genotype_parser(int argc, char** argv){
     options
       .add_options("OPTIONAL")
       ("m, total-mincov", "Minimum total coverage per region", cxxopts::value<int>()->default_value("0"))
-      ("c, allele-mincov", "Minimum coverage per allele sequence", cxxopts::value<int>()->default_value("0"))
-      ("e, max-error", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.05"))
-      ("t, threads", "Total threads to use.", cxxopts::value<int>()->default_value("1"));
+      ("c, allele-mincov", "Minimum coverage per allele sequence", cxxopts::value<int>()->default_value("0"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
     std::vector<std::string> inputs;
     for(auto & i : result.unmatched()) inputs.push_back(i);
-    //no BAM files provided, output help message
     if(inputs.empty()) std::cout << options.help();
     else {
-      OtterOpts params;
       const std::string bed = result["bed"].as<std::string>();
-      params.init_max_error(result["max-error"].as<double>());
-      params.init_threads(result["threads"].as<int>());
       const int ac_mincov = result["allele-mincov"].as<int>();
       const int tc_mincov = result["total-mincov"].as<int>();
-      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov);
-    }
+      length(inputs.front(), bed, ac_mincov, tc_mincov);
+    };
   }
 
   //unable to make sense of CLI
   catch (const cxxopts::OptionException& e) {
-    std::cout << "Error parsing options: " << e.what() << '\n' << options.help() << std::endl;
+    std::cout << "Error parsing options: " << e.what() << std::endl;
     exit(1);
   }
 }
 
-int command_genotype(int argc, char **argv){
+
+int command_length(int argc, char **argv){
   //parse CLI arguments
-  command_genotype_parser(argc, argv);
+  command_length_parser(argc, argv);
   return 0;
 }
