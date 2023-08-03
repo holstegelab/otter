@@ -67,7 +67,9 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 		    							size += alleles[i].size();
 		    						}
 		    					}
+		    					stdout_mtx.lock();
 		    					std::cout << region_str << '\t' << label << '\t' << n << '\t' << (size/n) << '\n';
+		    					stdout_mtx.unlock();
 		    				}
 		    			}
 		    			else{
@@ -75,9 +77,11 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 			    				int a1 = *(labels+sample2intervals[i].second.first);
 			    				int a2 = *(labels+sample2intervals[i].second.second);
 			    				bool is_a1_min = a1 < a2;
+			    				stdout_mtx.lock();
 			    				std::cout << index2sample[sample2intervals[i].first] << '\t' << region_str << '\t';
 			    				if(is_a1_min) std::cout << a1 << '/' << a2; else std::cout << a2 << '/' << a1;
 			    				std::cout << '\n';
+			    				stdout_mtx.unlock();
 			    			}
 		    			}
 					}
