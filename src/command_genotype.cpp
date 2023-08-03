@@ -23,6 +23,7 @@ void command_genotype_parser(int argc, char** argv){
       ("m, total-mincov", "Minimum total coverage per region", cxxopts::value<int>()->default_value("0"))
       ("c, allele-mincov", "Minimum coverage per allele sequence", cxxopts::value<int>()->default_value("0"))
       ("e, max-error", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.05"))
+      ("s, summary", "Output only summary information.", cxxopts::value<bool>()->default_value("false"))
       ("t, threads", "Total threads to use.", cxxopts::value<int>()->default_value("1"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
@@ -37,7 +38,8 @@ void command_genotype_parser(int argc, char** argv){
       params.init_threads(result["threads"].as<int>());
       const int ac_mincov = result["allele-mincov"].as<int>();
       const int tc_mincov = result["total-mincov"].as<int>();
-      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov);
+      const bool is_summary = result["summary"].as<bool>();
+      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov, is_summary);
     }
   }
 

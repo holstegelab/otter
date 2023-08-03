@@ -6,5 +6,6 @@ void genotype(
 	const std::string&,
 	const OtterOpts&,
 	const int&,
-	const int&
+	const int&,
+	const bool&
 );
