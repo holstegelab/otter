@@ -57,6 +57,7 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 		    			if(is_summary){
 		    				int max_label = 0;
 		    				for(int i = 0; i < (int)alleles.size(); ++i) if(labels[i] > max_label) max_label = labels[i];
+		    				++max_label;
 		    				for(int label = 0; label < max_label; ++label){
 		    					int n = 0;
 		    					double size = 0;
