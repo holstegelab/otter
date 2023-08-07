@@ -19,6 +19,7 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 			BamInstance bam_inst;
 			bam_inst.init(bam, true);
 			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
+			//aligner.setHeuristicBandedAdaptive(50, 50, 1);
 			for(int region_i = a; region_i < b; ++region_i) {
 				const BED& region = regions[region_i];
 				const std::string region_str = region.chr + ':' + std::to_string(region.start) + '-' + std::to_string(region.end);
@@ -37,16 +38,17 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 							int i_l = alleles[i].size();
 							for(int j = i + 1; j < (int)alleles.size(); ++j){
 								int j_l = alleles[j].size();
-								double max_l;
-								if(i_l > j_l){
-									max_l = i_l;
-									aligner.alignEnd2End(alleles[j], alleles[i]);
-								}
+								if(i_l == j_l && alleles[i] == alleles[j]) matrix.set_dist(i, j, 0.0);
 								else{
-									max_l = j_l;
-									aligner.alignEnd2End(alleles[i], alleles[j]);
+									int dist = i_l > j_l ? i_l - j_l : j_l - i_l;
+									int max_l = i_l > j_l ? i_l : j_l;
+									if(((double)dist / max_l) > params.max_error) matrix.set_dist(i, j, aligner.getAlignmentScore() / (params.max_error + 0.01));
+									else{
+										if(i_l > j_l)aligner.alignEnd2End(alleles[j], alleles[i]);
+										else aligner.alignEnd2End(alleles[i], alleles[j]);
+										matrix.set_dist(i, j, (double)aligner.getAlignmentScore() / max_l);
+									}
 								}
-								matrix.set_dist(i, j, aligner.getAlignmentScore() / max_l);
 							}
 						}
 						int* merge = new int[2*(alleles.size()-1)];
