@@ -26,7 +26,6 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 				hts_itr_t *iter = sam_itr_querys(bam_inst.idx, bam_inst.header, region_str.c_str());
 				if(iter == nullptr) std::cerr << "(" << antimestamp() << "): WARNING: query failed at region " << region_str << std::endl;
 				else{
-					std::cerr << region_str << '\n';
 					std::vector<int> allele_sample_indeces;
 					std::vector<std::string> alleles;
 					while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces);
