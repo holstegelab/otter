@@ -110,13 +110,6 @@ void sort_bam_alleles(std::vector<int>& sample_indeces, std::vector<std::string>
 
 	update_indeces_alleles(init_indeces, sample_indeces, alleles, _sample_indeces, _alleles, last, current);
 
-	/**
-	std::cout << _sample_indeces.size() << '\t' << _alleles.size() << '\n';
-	for(const auto& i : _sample_indeces) std::cout << i << '\n';
-	for(const auto& s :_alleles) std::cout << s << '\n';
-	*/
-
-
 	sample_indeces = _sample_indeces;
 	alleles = _alleles;
 }

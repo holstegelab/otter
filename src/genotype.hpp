@@ -7,5 +7,6 @@ void genotype(
 	const OtterOpts&,
 	const int&,
 	const int&,
+	const bool&,
 	const bool&
 );
