@@ -29,73 +29,75 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 					std::vector<int> allele_sample_indeces;
 					std::vector<std::string> alleles;
 					while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces);
-					sort_bam_alleles(allele_sample_indeces, alleles);
-					std::vector<std::pair<int, std::pair<int,int>>> sample2intervals;
-					set_sample_intervals(allele_sample_indeces, sample2intervals);
-					if(is_length){
-						for(const auto& si_pair : sample2intervals){
-							int a1_l = alleles[si_pair.second.first].size();
-							int a2_l = alleles[si_pair.second.second].size();
-							stdout_mtx.lock();
-							std::cout << region_str << '\t' << index2sample[si_pair.first] << '\t' << (a1_l < a2_l ? a1_l : a2_l) << '\t' << (a1_l > a2_l ? a1_l : a2_l) << '\t' << (a1_l + a2_l) << '\n';
-							stdout_mtx.unlock();
+					if(alleles.size() > 1){
+						sort_bam_alleles(allele_sample_indeces, alleles);
+						std::vector<std::pair<int, std::pair<int,int>>> sample2intervals;
+						set_sample_intervals(allele_sample_indeces, sample2intervals);
+						if(is_length){
+							for(const auto& si_pair : sample2intervals){
+								int a1_l = alleles[si_pair.second.first].size();
+								int a2_l = alleles[si_pair.second.second].size();
+								stdout_mtx.lock();
+								std::cout << region_str << '\t' << index2sample[si_pair.first] << '\t' << (a1_l < a2_l ? a1_l : a2_l) << '\t' << (a1_l > a2_l ? a1_l : a2_l) << '\t' << (a1_l + a2_l) << '\n';
+								stdout_mtx.unlock();
+							}
 						}
-					}
-					else{
-						if(alleles.size() > 1 && is_multi_sample(allele_sample_indeces)){
-							DistMatrix matrix(alleles.size());
-							for(int i = 0; i < (int)alleles.size(); ++i){
-								int i_l = alleles[i].size();
-								for(int j = i + 1; j < (int)alleles.size(); ++j){
-									int j_l = alleles[j].size();
-									if(i_l == j_l && alleles[i] == alleles[j]) matrix.set_dist(i, j, 0.0);
-									else{
-										int dist = i_l > j_l ? i_l - j_l : j_l - i_l;
-										int max_l = i_l > j_l ? i_l : j_l;
-										if(((double)dist / max_l) > params.max_error) matrix.set_dist(i, j, aligner.getAlignmentScore() / (params.max_error + 0.01));
+						else{
+							if(is_multi_sample(allele_sample_indeces)){
+								DistMatrix matrix(alleles.size());
+								for(int i = 0; i < (int)alleles.size(); ++i){
+									int i_l = alleles[i].size();
+									for(int j = i + 1; j < (int)alleles.size(); ++j){
+										int j_l = alleles[j].size();
+										if(i_l == j_l && alleles[i] == alleles[j]) matrix.set_dist(i, j, 0.0);
 										else{
-											if(i_l > j_l)aligner.alignEnd2End(alleles[j], alleles[i]);
-											else aligner.alignEnd2End(alleles[i], alleles[j]);
-											matrix.set_dist(i, j, (double)aligner.getAlignmentScore() / max_l);
+											int dist = i_l > j_l ? i_l - j_l : j_l - i_l;
+											int max_l = i_l > j_l ? i_l : j_l;
+											if(((double)dist / max_l) > params.max_error) matrix.set_dist(i, j, aligner.getAlignmentScore() / (params.max_error + 0.01));
+											else{
+												if(i_l > j_l)aligner.alignEnd2End(alleles[j], alleles[i]);
+												else aligner.alignEnd2End(alleles[i], alleles[j]);
+												matrix.set_dist(i, j, (double)aligner.getAlignmentScore() / max_l);
+											}
 										}
 									}
 								}
-							}
-							int* merge = new int[2*(alleles.size()-1)];
-		    				double* height = new double[alleles.size()-1];
-		    				hclust_fast(alleles.size(), matrix.values.data(), HCLUST_METHOD_AVERAGE, merge, height);
-		    				int* labels = new int[alleles.size()];
-			    			cutree_cdist(alleles.size(), merge, height, params.max_error, labels);
-			    			if(is_summary){
-			    				int max_label = 0;
-			    				for(int i = 0; i < (int)alleles.size(); ++i) if(labels[i] > max_label) max_label = labels[i];
-			    				++max_label;
-			    				for(int label = 0; label < max_label; ++label){
-			    					int n = 0;
-			    					double size = 0;
-			    					for(int i = 0; i < (int)alleles.size(); ++i) {
-			    						if(labels[i] == label){
-			    							++n;
-			    							size += alleles[i].size();
-			    						}
-			    					}
-			    					stdout_mtx.lock();
-			    					std::cout << region_str << '\t' << label << '\t' << n << '\t' << (size/n) << '\n';
-			    					stdout_mtx.unlock();
-			    				}
-			    			}
-			    			else{
-			    				for(int i = 0; i < (int)sample2intervals.size(); ++i){
-				    				int a1 = *(labels+sample2intervals[i].second.first);
-				    				int a2 = *(labels+sample2intervals[i].second.second);
-				    				bool is_a1_min = a1 < a2;
-				    				stdout_mtx.lock();
-				    				std::cout << index2sample[sample2intervals[i].first] << '\t' << region_str << '\t';
-				    				if(is_a1_min) std::cout << a1 << '/' << a2; else std::cout << a2 << '/' << a1;
-				    				std::cout << '\n';
-				    				stdout_mtx.unlock();
+								int* merge = new int[2*(alleles.size()-1)];
+			    				double* height = new double[alleles.size()-1];
+			    				hclust_fast(alleles.size(), matrix.values.data(), HCLUST_METHOD_AVERAGE, merge, height);
+			    				int* labels = new int[alleles.size()];
+				    			cutree_cdist(alleles.size(), merge, height, params.max_error, labels);
+				    			if(is_summary){
+				    				int max_label = 0;
+				    				for(int i = 0; i < (int)alleles.size(); ++i) if(labels[i] > max_label) max_label = labels[i];
+				    				++max_label;
+				    				for(int label = 0; label < max_label; ++label){
+				    					int n = 0;
+				    					double size = 0;
+				    					for(int i = 0; i < (int)alleles.size(); ++i) {
+				    						if(labels[i] == label){
+				    							++n;
+				    							size += alleles[i].size();
+				    						}
+				    					}
+				    					stdout_mtx.lock();
+				    					std::cout << region_str << '\t' << label << '\t' << n << '\t' << (size/n) << '\n';
+				    					stdout_mtx.unlock();
+				    				}
 				    			}
-			    			}
+				    			else{
+				    				for(int i = 0; i < (int)sample2intervals.size(); ++i){
+					    				int a1 = *(labels+sample2intervals[i].second.first);
+					    				int a2 = *(labels+sample2intervals[i].second.second);
+					    				bool is_a1_min = a1 < a2;
+					    				stdout_mtx.lock();
+					    				std::cout << index2sample[sample2intervals[i].first] << '\t' << region_str << '\t';
+					    				if(is_a1_min) std::cout << a1 << '/' << a2; else std::cout << a2 << '/' << a1;
+					    				std::cout << '\n';
+					    				stdout_mtx.unlock();
+					    			}
+				    			}
+							}
 						}
 					}
 				}
