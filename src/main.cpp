@@ -13,7 +13,7 @@ void printHelp(){
    std::cout << ("      genotype      Generate genotypes for each local assembly.") << std::endl;
    std::cout << ("      length        Output local assembly lengths per sample.") << std::endl;
    std::cout << ("      fa2sam        Convert (otter) fasta file to SAM-format.\n") << std::endl;
-   std::cout << ("version: 0.1.0\n") << std::endl;
+   std::cout << ("version: 0.1.1\n") << std::endl;
  }
 
 /**

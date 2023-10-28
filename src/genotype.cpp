@@ -53,7 +53,7 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 										else{
 											int dist = i_l > j_l ? i_l - j_l : j_l - i_l;
 											int max_l = i_l > j_l ? i_l : j_l;
-											if(((double)dist / max_l) > params.max_error) matrix.set_dist(i, j, aligner.getAlignmentScore() / (params.max_error + 0.01));
+											if(((double)dist / max_l) > params.max_error) matrix.set_dist(i, j, params.max_error + 0.01);
 											else{
 												if(i_l > j_l)aligner.alignEnd2End(alleles[j], alleles[i]);
 												else aligner.alignEnd2End(alleles[i], alleles[j]);
@@ -97,6 +97,9 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 					    				stdout_mtx.unlock();
 					    			}
 				    			}
+				    			delete[] height;
+				    			delete[] merge;
+				    			delete[] labels;
 							}
 						}
 					}
