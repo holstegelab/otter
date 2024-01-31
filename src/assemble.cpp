@@ -30,7 +30,7 @@ double compute_se(const std::vector<double> values)
 	
 }
 
-void general_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, const bool& reads_only, BS::thread_pool& pool)
+void general_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, bool& reads_only, BS::thread_pool& pool)
 {
 	
 	std::cerr << '(' << antimestamp() << "): Processing " << bam << '\n';
@@ -112,7 +112,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 }
 
 
-void assemble(const std::vector<std::string>& bams, const std::string& bed, const std::string& reference, const bool& reads_only, const OtterOpts& params)
+void assemble(const std::vector<std::string>& bams, const std::string& bed, const std::string& reference, bool& reads_only, const OtterOpts& params)
 {
  	BS::thread_pool pool(params.threads);
 

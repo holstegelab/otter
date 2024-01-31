@@ -17,10 +17,10 @@ void command_assemble_parser(int argc, char** argv){
       .set_tab_expansion()
       .custom_help("[parameters] <BAM>")
       .add_options(" REQUIRED")
-      ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""));
+      ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>());
     options
       .add_options("OPTIONAL")
-      ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>())
+      ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""))
       ("sam", "Output in SAM-format.", cxxopts::value<bool>()->default_value("false"))
       ("R, read-group", "Output with this read-group tag (only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
@@ -35,6 +35,9 @@ void command_assemble_parser(int argc, char** argv){
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
       ("s, min-sim", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.9"))
       ("t, threads", "Total number of threads.", cxxopts::value<int>()->default_value("4"));
+    options
+      .add_options("PRESETS")
+      ("w, wga", "Whole-genome alignment mode: '-p --reads-only.", cxxopts::value<bool>()->default_value("false"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
     std::vector<std::string> inputs;
@@ -45,8 +48,12 @@ void command_assemble_parser(int argc, char** argv){
       OtterOpts params;
       const std::string bed = result["bed"].as<std::string>();
       const std::string reference = result["reference"].as<std::string>();
-      const bool reads_only = result["reads-only"].as<bool>();
+      bool reads_only = result["reads-only"].as<bool>();
       params.nonprimary = result["non-primary"].as<bool>();
+      if(result["wga"].as<bool>()){
+        reads_only = true;
+        params.nonprimary = true;
+      }
       params.is_sam = result["sam"].as<bool>();
       params.read_group = result["read-group"].as<std::string>();
       params.init_offset(result["offset"].as<int>());

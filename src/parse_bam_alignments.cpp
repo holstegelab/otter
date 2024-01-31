@@ -189,7 +189,7 @@ void parse_alignment(const int& rstart, const int& rend, bam1_t* read, ParsingSt
 			std::cerr << '(' << antimestamp() << "): ERROR: unexpected querty start/end coords found for read " << (char*)read->data << '\n';
 			exit(1);
 		}
-		if(query_ptr->first == -1) seq = "N"; 
+		if(query_ptr->first == -1 || (read->core.l_qseq < (query_ptr->second - query_ptr->first))) seq = "N"; 
 		else {
 			int l_qsubseq = query_ptr->second - query_ptr->first;
 			int l_qsubseq_og = msg.alignment_coords.second - msg.alignment_coords.first;
