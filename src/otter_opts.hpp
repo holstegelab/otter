@@ -18,6 +18,7 @@ class OtterOpts {
 		double min_sim;
 		bool nonprimary;
 		bool is_sam;
+		bool omitnonspanning;
 		std::string read_group;
 
 		void init_offset(int);

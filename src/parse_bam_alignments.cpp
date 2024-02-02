@@ -214,7 +214,7 @@ void parse_alignments(const OtterOpts& params, const BED& bed, const BamInstance
 				std::string seq;
 				ParsingStatus msg;
 				parse_alignment(bed.start, bed.end, bam_inst.read, msg, seq);
-				if(msg.successful){
+				if(msg.successful && (!params.omitnonspanning || msg.is_spanning())){
 					alignment_block.names.emplace_back(name);
 					alignment_block.seqs.emplace_back(seq);
 					alignment_block.statuses.emplace_back(msg);

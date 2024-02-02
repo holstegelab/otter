@@ -25,11 +25,12 @@ void command_assemble_parser(int argc, char** argv){
       ("R, read-group", "Output with this read-group tag (only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
       ("p, non-primary", "Use non-primmary read-alignments.", cxxopts::value<bool>()->default_value("false"))
+      ("l, omit-nonspanning", "Omit non-spanning reads.", cxxopts::value<bool>()->default_value("false"))
       ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("31"))
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
-      ("F, cov-fraction", "Minimum coverage fraction per repeat", cxxopts::value<double>()->default_value("0.1"))
+      ("F, cov-fraction", "Minimum coverage fraction per repeat", cxxopts::value<double>()->default_value("0.2"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.025"))
       ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
@@ -37,7 +38,7 @@ void command_assemble_parser(int argc, char** argv){
       ("t, threads", "Total number of threads.", cxxopts::value<int>()->default_value("4"));
     options
       .add_options("PRESETS")
-      ("w, wga", "Whole-genome alignment mode: '-p --reads-only.", cxxopts::value<bool>()->default_value("false"));
+      ("w, wga", "Whole-genome alignment mode: '-lp --reads-only.", cxxopts::value<bool>()->default_value("false"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
     std::vector<std::string> inputs;
@@ -50,9 +51,11 @@ void command_assemble_parser(int argc, char** argv){
       const std::string reference = result["reference"].as<std::string>();
       bool reads_only = result["reads-only"].as<bool>();
       params.nonprimary = result["non-primary"].as<bool>();
+      params.omitnonspanning = result["omit-nonspanning"].as<bool>();
       if(result["wga"].as<bool>()){
         reads_only = true;
         params.nonprimary = true;
+        params.omitnonspanning = true;
       }
       params.is_sam = result["sam"].as<bool>();
       params.read_group = result["read-group"].as<std::string>();
