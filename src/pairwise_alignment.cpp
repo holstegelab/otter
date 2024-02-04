@@ -64,7 +64,7 @@ std::pair<double, double> otter_find_clustering_dist(const double& bandwidth, co
 	}
 }
 
-void otter_hclust(const int& max_alleles, const double& bandwidth, const double& max_tolerable_diff, const double& min_cov_fraction, const std::vector<int>& spannable_indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<int>& cluster_labels, int& initial_clusters)
+void otter_hclust(const int& max_alleles, const double& bandwidth, const double& max_tolerable_diff, const double& min_cov_fraction, const int& min_cov_fraction2_l, const double& min_cov_fraction2_f,const std::vector<int>& spannable_indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<int>& cluster_labels, int& initial_clusters)
 {
 	cluster_labels.resize(sequences.names.size(), -1);
 	if(spannable_indeces.size() == 1) cluster_labels[spannable_indeces[0]] = 0;
@@ -100,7 +100,11 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
 		    ++total_alleles;
 			initial_clusters = total_alleles;
-			int min_cov = int(spannable_indeces.size()*min_cov_fraction);
+			int min_cov;
+			int max_allele_l = sequences.seqs[0].size();
+			for(const auto allele_i : spannable_indeces) if(max_allele_l < sequences.seqs[allele_i].size()) max_allele_l = sequences.seqs[allele_i].size();
+			if(max_allele_l >= min_cov_fraction2_l) min_cov = int(spannable_indeces.size()*min_cov_fraction2_f + 0.5);
+			else min_cov = int(spannable_indeces.size()*min_cov_fraction + 0.5);
 			if(max_alleles != 0) {
 				std::vector<int> label_counts(total_alleles);
 				for(int i = 0; i < (int)spannable_indeces.size(); ++i) ++label_counts[labels[i]];

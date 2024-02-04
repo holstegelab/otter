@@ -31,6 +31,7 @@ void command_assemble_parser(int argc, char** argv){
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
       ("F, cov-fraction", "Minimum coverage fraction per repeat", cxxopts::value<double>()->default_value("0.2"))
+      ("A, cov-fraction2", "Minimum coverage fraction per repeat", cxxopts::value<std::string>()->default_value("3000,0.1"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.025"))
       ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
@@ -69,6 +70,7 @@ void command_assemble_parser(int argc, char** argv){
       params.init_bandwidth(result["bandwidth"].as<double>());
       params.init_flank(result["flank-size"].as<int>());
       params.init_min_sim(result["min-sim"].as<double>());
+      params.init_min_cov_fraction2(result["cov-fraction2"].as<std::string>());
       assemble(inputs, bed, reference, reads_only, params);
     }
   }

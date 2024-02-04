@@ -72,7 +72,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							DistMatrix distmatrix(spannable_indeces.size());
 							std::vector<int> labels;
 							int initial_clusters;
-							otter_hclust(params.max_alleles, params.bandwidth, params.max_error, params.min_cov_fraction, spannable_indeces, distmatrix, aligner, alignment_block, labels, initial_clusters);
+							otter_hclust(params.max_alleles, params.bandwidth, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, spannable_indeces, distmatrix, aligner, alignment_block, labels, initial_clusters);
 							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\n';
 							std::vector<std::string> consensus_seqs;
 							std::vector<std::vector<double>> ses;

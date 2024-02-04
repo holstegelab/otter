@@ -32,6 +32,8 @@ void otter_hclust(
 	const double& bandwidth,
 	const double&,
 	const double& min_cov_fraction,
+	const int& min_cov_fraction2_l,
+	const double& min_cov_fraction2_f,
 	const std::vector<int>&, 
 	DistMatrix& distmatrix,
 	wfa::WFAligner& aligner, 

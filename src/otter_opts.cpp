@@ -1,5 +1,7 @@
 #include "otter_opts.hpp"
 #include "antimestamp.hpp"
+#include <sstream>
+#include <vector>
 #include <iostream>
 #include <ostream>
 #include <cstdint>
@@ -92,5 +94,22 @@ void OtterOpts::init_min_sim(double _min_sim)
 	else{
 		std::cout << '(' << antimestamp() << "): Invalid min-similarity for realignment: " << _min_sim <<  std::endl;
 		exit(0);
+	}
+}
+
+void OtterOpts::init_min_cov_fraction2(std::string tmp)
+{
+	auto it = tmp.begin();
+	while(it != tmp.end()){
+		if(std::isspace(*it)) it = tmp.erase(it);
+		else ++it;
+	}
+	std::vector<std::string> tmp_inputs;
+	std::string value;
+	std::istringstream stringstream(tmp);
+	while(std::getline(stringstream, value, ',')) tmp_inputs.emplace_back(value);
+	if(tmp_inputs.size() == 2) {
+		min_cov_fraction2_l = std::stoi(tmp_inputs[0]);
+		min_cov_fraction2_f = std::stod(tmp_inputs[1]);
 	}
 }

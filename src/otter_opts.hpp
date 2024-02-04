@@ -11,6 +11,8 @@ class OtterOpts {
 		int mapq;
 		int max_cov;
 		double min_cov_fraction;
+		int min_cov_fraction2_l;
+		double min_cov_fraction2_f;
 		int threads;
 		double max_error;
 		double bandwidth;
@@ -31,6 +33,7 @@ class OtterOpts {
 		void init_bandwidth(double);
 		void init_flank(int);
 		void init_min_sim(double);
+		void init_min_cov_fraction2(std::string);
 
 };
 
