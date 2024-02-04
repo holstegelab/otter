@@ -30,8 +30,8 @@ void command_assemble_parser(int argc, char** argv){
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
-      ("F, cov-fraction", "Minimum coverage fraction per repeat", cxxopts::value<double>()->default_value("0.2"))
-      ("A, cov-fraction2", "Minimum coverage fraction per repeat", cxxopts::value<std::string>()->default_value("3000,0.1"))
+      ("F, cov-fraction", "Minimum coverage fraction per sequence.", cxxopts::value<double>()->default_value("0.2"))
+      ("A, cov-fraction2", "Alternative minimum coverage fraction (INT,DOUBLE).", cxxopts::value<std::string>()->default_value("3000,0.1"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.025"))
       ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
@@ -39,7 +39,7 @@ void command_assemble_parser(int argc, char** argv){
       ("t, threads", "Total number of threads.", cxxopts::value<int>()->default_value("4"));
     options
       .add_options("PRESETS")
-      ("w, wga", "Whole-genome alignment mode: '-lp --reads-only.", cxxopts::value<bool>()->default_value("false"));
+      ("w, wga", "Whole-genome alignment mode: '-lp --reads-only'.", cxxopts::value<bool>()->default_value("false"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
     std::vector<std::string> inputs;
