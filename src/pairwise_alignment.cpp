@@ -9,6 +9,9 @@
 #include "bindings/cpp/WFAligner.hpp"
 #include "fastcluster.h"
 
+
+DecisionBound::DecisionBound(double x, double y, double z): dist0(x),dist1(y),cut0(z){};
+
 double otter_seq_dist(wfa::WFAligner& aligner, std::string& x, ParsingStatus& x_status, std::string& y, ParsingStatus& y_status)
 {
 	if(!x_status.is_spanning() && !y_status.is_spanning()) return -1;
@@ -41,7 +44,7 @@ void otter_pairwise_dist(const std::vector<int>& indeces, AlignmentBlock& sequen
 
 }
 
-std::pair<double, double> otter_find_clustering_dist(const double& bandwidth, const std::vector<int>& indeces, AlignmentBlock& sequences, wfa::WFAligner& aligner, DistMatrix& distmatrix)
+DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vector<int>& indeces, AlignmentBlock& sequences, wfa::WFAligner& aligner, DistMatrix& distmatrix)
 {
 	otter_pairwise_dist(indeces, sequences, aligner, distmatrix);
 	KDE kde(bandwidth);
@@ -50,9 +53,10 @@ std::pair<double, double> otter_find_clustering_dist(const double& bandwidth, co
 	for(double x = 0.0; x <= 1.0; x += bandwidth) densities.emplace_back(kde.f(x));
 	//for(const auto& d : densities) std::cout << d << '\n';
 	std::vector<std::pair<int,double>> maximas;
-	kde.maximas(densities, maximas);
-	if(maximas.size() == 1) return std::make_pair(maximas[0].first*0.01,maximas[0].first*0.01);
-	else if(maximas.size() == 2) return std::make_pair(maximas[0].first*0.01, maximas[1].first*0.01); 
+	std::vector<std::pair<int,double>> minimas;
+	kde.maximas(densities, maximas, minimas);
+ 	if(maximas.size() == 1) return DecisionBound(maximas[0].first*0.01,maximas[0].first*0.01,-1.0);
+	else if(maximas.size() == 2) return DecisionBound(maximas[0].first*0.01, maximas[1].first*0.01, minimas[0].first*0.01); 
 	else {
 		int m_i = 1;
 		for(int i = 2; i < (int)maximas.size(); ++i){
@@ -60,7 +64,7 @@ std::pair<double, double> otter_find_clustering_dist(const double& bandwidth, co
 				m_i = i;
 			}
 		}
-		return std::make_pair(maximas[0].first*0.01, maximas[m_i].first*0.01); 
+		return DecisionBound(maximas[0].first*0.01, maximas[m_i].first*0.01, minimas[m_i - 1].first*0.01); 
 	}
 }
 
@@ -74,8 +78,8 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 		cluster_labels[spannable_indeces[1]] = dist > max_tolerable_diff ? 1 : 0;
 	}
 	else{
-		std::pair<double,double> dists = otter_find_clustering_dist(bandwidth, spannable_indeces, sequences, aligner, distmatrix);
-		//std::cout << "clustering dist of " << dists.first << ' ' <<  dists.second << '\n';
+		DecisionBound dists = otter_find_clustering_dist(bandwidth, spannable_indeces, sequences, aligner, distmatrix);
+		//std::cout << "clustering dist of " << dists.dist0 << ' ' <<  dists.dist1 << ' ' << dists.cut0 << '\n';
 		double* distmat = distmatrix.values.data();
 		uint32_t k,i,j;
 		for(i=k=0; i < spannable_indeces.size(); ++i) {
@@ -88,13 +92,17 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 	    int* merge = new int[2*(spannable_indeces.size()-1)];
 	    double* height = new double[spannable_indeces.size()-1];
 	    hclust_fast(spannable_indeces.size(), distmat, HCLUST_METHOD_AVERAGE, merge, height);
-	    if(dists.second - dists.first <= max_tolerable_diff) {
+	    if(dists.dist1 - dists.dist0 <= max_tolerable_diff) {
 	    	for(const auto& i : spannable_indeces) cluster_labels[i] = 0;
 	    	initial_clusters = 1;
 	    }
 	    else {
+	    	if(dists.cut0 < 0){
+	    		std::cerr << "ERROR: unexpected clustering boundary: " << dists.dist0 << ',' << dists.dist1 << ',' << dists.cut0 << '\n';
+	    		exit(1);
+	    	}
 	    	int* labels = new int[spannable_indeces.size()];
-	    	double dist_final = dists.second == 0.01 ? dists.second : dists.second - 0.02;
+	    	double dist_final = dists.dist1 == 0.01 ? dists.dist1 : dists.cut0 + 0.01;
 		    cutree_cdist(spannable_indeces.size(), merge, height, dist_final, labels);
 		    int total_alleles = 0;
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];

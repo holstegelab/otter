@@ -4,6 +4,14 @@
 #include <string>
 #include "bindings/cpp/WFAligner.hpp"
 
+class DecisionBound{
+	public:
+		double dist0;
+		double dist1;
+		double cut0;
+		DecisionBound(double, double, double);
+};
+
 double otter_seq_dist(
 	wfa::WFAligner& aligner, 
 	std::string& x, 
@@ -19,7 +27,7 @@ void otter_pairwise_dist(
 	DistMatrix&
 );
 
-std::pair<double,double> otter_find_clustering_dist(
+DecisionBound otter_find_clustering_dist(
 	const double&,
 	const std::vector<int>&,
 	AlignmentBlock&, 
