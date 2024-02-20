@@ -108,84 +108,95 @@ void otter_hclust(const int& max_alleles, const double& bandwidth, const double&
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
 		    ++total_alleles;
 			initial_clusters = total_alleles;
-			int min_cov;
-			int max_allele_l = sequences.seqs[0].size();
-			for(const auto allele_i : spannable_indeces) if(max_allele_l < sequences.seqs[allele_i].size()) max_allele_l = sequences.seqs[allele_i].size();
-			if(max_allele_l >= min_cov_fraction2_l) min_cov = int(spannable_indeces.size()*min_cov_fraction2_f + 0.5);
-			else min_cov = int(spannable_indeces.size()*min_cov_fraction + 0.5);
+			int min_cov1 = int(spannable_indeces.size()*min_cov_fraction + 0.5);
+			int min_cov2 = int(spannable_indeces.size()*min_cov_fraction2_f + 0.5);
 			if(max_alleles != 0) {
 				std::vector<int> label_counts(total_alleles);
-				for(int i = 0; i < (int)spannable_indeces.size(); ++i) ++label_counts[labels[i]];
+				std::vector<int> label_max_sizes(total_alleles);
+
+				for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
+					++label_counts[labels[i]];
+					if(sequences.seqs[spannable_indeces[i]].size() > label_max_sizes[labels[i]]) label_max_sizes[labels[i]] = sequences.seqs[spannable_indeces[i]].size();
+				}
+				int label_max_cov = 0;
+				std::vector<int> label_min_covs(total_alleles);
+				for(int l = 0; l < (int)label_max_sizes.size(); ++l){
+					if(label_counts[l] > label_max_cov) label_max_cov = label_counts[l];
+					if(label_max_sizes[l] < min_cov_fraction2_l) label_min_covs[l] = min_cov1;
+					else label_min_covs[l] = min_cov2;
+				}
+
 				bool is_only_singletons = true;
-				for(const auto& c : label_counts) if(c >= min_cov) is_only_singletons = false;
+				for(int l = 0; l < (int)label_min_covs.size(); ++l){
+					if(label_counts[l] >= label_min_covs[l]) {
+						is_only_singletons = false;
+						break;
+					}
+				}
+
 				if(is_only_singletons) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
 				else{
-					std::vector<int> label_counts_srt = label_counts;
-					sort(label_counts_srt.begin(), label_counts_srt.end(), [](const int& a, const int& b) -> bool { return a > b; });
-					if(label_counts_srt[0] < min_cov) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
+					int outlier_clusters_n = 0;
+					int seed_clusters_n = 0;
+					for(int l = 0; l < (int)label_counts.size(); ++l){
+						if(label_counts[l] < label_min_covs[l]) ++outlier_clusters_n;
+						else ++seed_clusters_n;
+					}
+					if(seed_clusters_n == 0 || seed_clusters_n > max_alleles) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
 					else{
-						int outlier_clusters_n = 0;
-						int seed_clusters_n = 0;
-						for(const auto& c : label_counts_srt) {
-							if(c < min_cov) ++outlier_clusters_n;
-							else if(c >= min_cov) ++seed_clusters_n;
+						std::vector<int> outlier_clusters;
+						std::vector<int> seed_clusters;
+						for(int l = 0; l < total_alleles; ++l) {
+							if(label_counts[l] < label_min_covs[l]) outlier_clusters.emplace_back(l);
+							else seed_clusters.emplace_back(l);
 						}
-						if(seed_clusters_n == 0 || seed_clusters_n > max_alleles) cutree_k(spannable_indeces.size(), merge, max_alleles, labels);
-						else{
-							std::vector<int> outlier_clusters;
-							std::vector<int> seed_clusters;
-							for(int i = 0; i < total_alleles; ++i) {
-								if(label_counts[i] < min_cov) outlier_clusters.emplace_back(i);
-								else seed_clusters.emplace_back(i);
-							}
-							/**
-							for(const auto& s : seed_clusters) {
-								for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "seed\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
-							}
-							for(const auto& s : outlier_clusters) {
-								for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "outlier\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
-							}
-						   */
+						//std::cout << seed_clusters.size() << '\t' << outlier_clusters.size() << '\n';
+						/**
+						for(const auto& s : seed_clusters) {
+							for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "seed\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
+						}
+						for(const auto& s : outlier_clusters) {
+							for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] == s) std::cout << "outlier\t" << label_counts[s] << '\t' << sequences.seqs[spannable_indeces[i]] << '\n';
+						}
+					   */
 
-							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-								for(const auto& o : outlier_clusters) {
-									if(labels[i] == o){
-										labels[i] = -1;
-										break;
-									}
+						for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+							for(const auto& o : outlier_clusters) {
+								if(labels[i] == o){
+									labels[i] = -1;
+									break;
 								}
 							}
-							
-							std::vector<int> readjusted_seed_cluster_labels(seed_clusters.size());
-							for(int i = 0; i < (int)seed_clusters.size(); ++i) readjusted_seed_cluster_labels[i] = i;
-							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-								for(int j = 0; j < (int)seed_clusters.size(); ++j) {
-									if(labels[i] == seed_clusters[j]){
-										labels[i] = readjusted_seed_cluster_labels[j];
-										break;
-									}
+						}
+						
+						std::vector<int> readjusted_seed_cluster_labels(seed_clusters.size());
+						for(int i = 0; i < (int)seed_clusters.size(); ++i) readjusted_seed_cluster_labels[i] = i;
+						for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+							for(int j = 0; j < (int)seed_clusters.size(); ++j) {
+								if(labels[i] == seed_clusters[j]){
+									labels[i] = readjusted_seed_cluster_labels[j];
+									break;
 								}
 							}
+						}
 
-							for(int i = 0; i < (int)spannable_indeces.size(); ++i){
-								if(labels[i] == -1){
-									int closest_j;
-									double min_dist = 100000.0;
-									for(int j = 0; j < (int)spannable_indeces.size(); ++j){
-										if(i != j && labels[j] != -1){
-											double j_dist = distmatrix.get_dist(i, j);
-											if(j_dist < min_dist){
-												closest_j = j;
-												min_dist = j_dist;
-											}
-										} 
-									}
-									labels[i] = labels[closest_j];
+						for(int i = 0; i < (int)spannable_indeces.size(); ++i){
+							if(labels[i] == -1){
+								int closest_j;
+								double min_dist = 100000.0;
+								for(int j = 0; j < (int)spannable_indeces.size(); ++j){
+									if(i != j && labels[j] != -1){
+										double j_dist = distmatrix.get_dist(i, j);
+										if(j_dist < min_dist){
+											closest_j = j;
+											min_dist = j_dist;
+										}
+									} 
 								}
+								labels[i] = labels[closest_j];
 							}
 						}
 					}
-
 				}
 			}
 		    for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
