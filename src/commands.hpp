@@ -17,3 +17,8 @@ int command_length(
 	int, 
 	char**
 );
+
+int command_cov(
+	int, 
+	char**
+);
