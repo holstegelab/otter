@@ -32,15 +32,15 @@ void ocov(const OtterOpts& params, const std::string& bed, const std::string& ba
  	std::cerr << '(' << antimestamp() << "): Processing " << bam << '\n';
 	std::mutex std_out_mtx;
 
-	BamInstance bam_inst;
-	bam_inst.init(bam, true);
 
 	bool is_read_group = params.read_group.size() > 1;
 	if(is_read_group) std::cout << "#Sample\tRegion\tCoverage\n";
 	else std::cout << "#Region\tCoverage\n";
 
 	pool.parallelize_loop(0, bed_regions.size(), 
-		[&pool, &std_out_mtx, &params, &bam, &bam_inst, &bed_regions, &is_read_group](const int a, const int b){
+		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &is_read_group](const int a, const int b){
+			BamInstance bam_inst;
+			bam_inst.init(bam, true);
 			for(int i = a; i < b; ++i) {
 				const BED& local_bed = bed_regions[i];
 				BED mod_bed = local_bed;
@@ -53,8 +53,8 @@ void ocov(const OtterOpts& params, const std::string& bed, const std::string& ba
 				std::cout << local_bed.toBEDstring() << '\t' << local_coverage << '\n';
 				std_out_mtx.unlock();
 			}
+			bam_inst.destroy();
 		}
 	).wait();
 
-	bam_inst.destroy();
 }
