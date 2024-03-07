@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string>
 #include "commands.hpp"
+#include "test.hpp"
 
 
 /**
@@ -13,7 +14,7 @@ void printHelp(){
    std::cout << ("      genotype      Generate genotypes for each local assembly.") << std::endl;
    std::cout << ("      length        Output local assembly lengths per sample.") << std::endl;
    std::cout << ("      fa2sam        Convert (otter) fasta file to SAM-format.\n") << std::endl;
-   std::cout << ("version: 0.4.1\n") << std::endl;
+   std::cout << ("version: 0.5.0\n") << std::endl;
  }
 
 /**
@@ -27,6 +28,7 @@ int main(int argc, char **argv){
     else if(std::string(argv[1]) == "genotype") command_genotype(argc - 1, &argv[1]);
     else if(std::string(argv[1]) == "length") command_length(argc - 1, &argv[1]);
     else if(std::string(argv[1]) == "cov") command_cov(argc - 1, &argv[1]);
+    else if(std::string(argv[1]) == "test") test(argc - 1, &argv[1]);
     else printHelp();
   }
 
