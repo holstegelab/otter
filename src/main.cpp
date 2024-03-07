@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <string>
 #include "commands.hpp"
-#include "test.hpp"
 
 
 /**
@@ -28,7 +27,6 @@ int main(int argc, char **argv){
     else if(std::string(argv[1]) == "genotype") command_genotype(argc - 1, &argv[1]);
     else if(std::string(argv[1]) == "length") command_length(argc - 1, &argv[1]);
     else if(std::string(argv[1]) == "cov") command_cov(argc - 1, &argv[1]);
-    else if(std::string(argv[1]) == "test") test(argc - 1, &argv[1]);
     else printHelp();
   }
 
