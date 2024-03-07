@@ -12,7 +12,7 @@ void printHelp(){
    std::cout << ("Usage:\n otter [command]") << std::endl;
    std::cout << ("      assemble      Run local assembly across a given set of target regions.") << std::endl;
    std::cout << ("      genotype      Generate genotypes for each local assembly.") << std::endl;
-   std::cout << ("      length        Output local assembly lengths per sample.") << std::endl;
+   std::cout << ("      length        Output local assembly lengths per sample (DEPRECATED, superseded in 'genotype' command).") << std::endl;
    std::cout << ("      fa2sam        Convert (otter) fasta file to SAM-format.\n") << std::endl;
    std::cout << ("version: 0.5.0\n") << std::endl;
  }
