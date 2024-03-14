@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "anbed.hpp"
 #include "antimestamp.hpp"
 #include <string>
