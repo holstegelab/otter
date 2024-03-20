@@ -22,3 +22,8 @@ int command_cov(
 	int, 
 	char**
 );
+
+int command_wgat(
+	int, 
+	char**
+);

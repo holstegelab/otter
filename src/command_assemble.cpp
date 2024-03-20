@@ -53,11 +53,7 @@ void command_assemble_parser(int argc, char** argv){
       bool reads_only = result["reads-only"].as<bool>();
       params.nonprimary = result["non-primary"].as<bool>();
       params.omitnonspanning = result["omit-nonspanning"].as<bool>();
-      if(result["wga"].as<bool>()){
-        reads_only = true;
-        params.nonprimary = true;
-        params.omitnonspanning = true;
-      }
+      if(result["wga"].as<bool>()) params.is_wga = true; else params.is_wga = false;
       params.is_sam = result["sam"].as<bool>();
       params.read_group = result["read-group"].as<std::string>();
       params.init_offset(result["offset"].as<int>());

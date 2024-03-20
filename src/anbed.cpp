@@ -84,5 +84,5 @@ void parse_bed_file(const std::string bedfile, std::vector<BED>& bed_vector)
   while (std::getline(inputbed, line)) bed_vector.emplace_back(line);
   inputbed.close();
 
-  std::cerr << '(' << antimestamp() << "): Loaded " << bed_vector.size() << " total annotation(s) across\n";
+  std::cerr << '(' << antimestamp() << "): Loaded " << bed_vector.size() << " total annotation(s)\n";
 }

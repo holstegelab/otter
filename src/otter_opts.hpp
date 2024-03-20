@@ -21,6 +21,7 @@ class OtterOpts {
 		bool nonprimary;
 		bool is_sam;
 		bool omitnonspanning;
+		bool is_wga;
 		std::string read_group;
 
 		void init_offset(int);
