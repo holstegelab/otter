@@ -20,7 +20,7 @@ void command_wgat_parser(int argc, char** argv){
       ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>());
     options
       .add_options("OPTIONAL")
-      ("sam", "Output in SAM-format. Requres '-R' parameter.", cxxopts::value<bool>()->default_value("false"))
+      ("sam", "Output in SAM-format. Requires '-R' parameter.", cxxopts::value<bool>()->default_value("false"))
       ("R, read-group", "Sample name (required when using '--sam').", cxxopts::value<std::string>()->default_value(""))
       ("o, offset", "Extend coords by this amount", cxxopts::value<int>()->default_value("31"))
       ("t, threads", "Total number of threads.", cxxopts::value<int>()->default_value("1"));

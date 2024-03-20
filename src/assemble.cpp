@@ -32,13 +32,13 @@ double compute_se(const std::vector<double> values)
 	
 }
 
-void general_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, bool& reads_only, BS::thread_pool& pool)
+void general_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, const std::string& read_group, bool& reads_only, BS::thread_pool& pool)
 {
-	
-	std::cerr << '(' << antimestamp() << "): Processing " << bam << '\n';
+
+	std::cerr << '(' << antimestamp() << "): Processing " << bam << " (" << read_group << ')' << std::endl;
 	std::mutex std_out_mtx;
 	pool.parallelize_loop(0, bed_regions.size(),
-		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &reference, &reads_only](const int a, const int b){
+		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &reference, &reads_only, &read_group](const int a, const int b){
 			BamInstance bam_inst;
 			bam_inst.init(bam, true);
 			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
@@ -61,7 +61,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 					if(reads_only){
 						std_out_mtx.lock();
 						for(int i = 0; i < (int)alignment_block.names.size(); ++i) {
-							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1, -1.0);
+							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1, -1.0);
 							else std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
 						}
 						std_out_mtx.unlock();
@@ -96,7 +96,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 								}
 								if(params.is_sam) {
 									std::string assembly_name = region_str + "_" + std::to_string(j);
-									output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, initial_clusters, se);
+									output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], read_group, cov, alignment_block.names.size(), -1, -1, initial_clusters, se);
 								}
 								else{
 									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << initial_clusters << ' ' << se << '\n';
@@ -252,17 +252,31 @@ void assemble(const std::vector<std::string>& bams, const std::string& bed, cons
  	std::vector<BED> bed_regions;
  	parse_bed_file(bed, bed_regions);
 
+ 	std::vector<std::string> read_groups(bams.size());
  	if(params.is_sam){
 		BamInstance bam_inst;
 		bam_inst.init(bams.front(), true);
 		for(int i = 0; i < bam_inst.header->n_targets; ++i){
 			std::cout << "@SQ\tSN:" << bam_inst.header->target_name[i] << "\tLN:" << bam_inst.header->target_len[i] << '\n';
 		}
-		if(!params.read_group.empty()) std::cout << "@RG\tID:" << params.read_group << '\n';
+		for(int i = 0; i < (int)read_groups.size(); ++i) {
+			if(params.read_group.empty()) read_groups[i] = bams[i].substr(bams[i].find_last_of("/\\") + 1);
+			else read_groups[i] = params.read_group;
+		}
+		for(const auto& rg : read_groups) std::cout << "@RG\tID:" << rg << '\n';
 		bam_inst.destroy();
 	}
- 	for(const auto& bam : bams) {
- 		if(params.is_wga) wga_genotyper(params, bam, bed_regions, pool);
- 		else general_process(params, bam, bed_regions, reference, reads_only, pool);
+
+	{
+		std::vector<std::string> read_groups_tmp = read_groups;
+		sort(read_groups_tmp.begin(), read_groups_tmp.end());
+		for(int i = 1; i < (int)read_groups_tmp.size(); ++i){
+			if(read_groups_tmp[i] == read_groups_tmp[i-1]) std::cerr << '(' << antimestamp() << "): WARNING: non-unique sample identifier across multiple BAM-files: " << read_groups_tmp[i] << std::endl;
+		}
+	}
+
+ 	for(int i = 0; i < (int)read_groups.size(); ++i){
+ 		if(params.is_wga) wga_genotyper(params, bams[i], bed_regions, pool);
+ 		else general_process(params, bams[i], bed_regions, reference, read_groups[i], reads_only, pool);
  	}
 }

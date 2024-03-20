@@ -22,7 +22,7 @@ void command_assemble_parser(int argc, char** argv){
       .add_options("OPTIONAL")
       ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""))
       ("sam", "Output in SAM-format.", cxxopts::value<bool>()->default_value("false"))
-      ("R, read-group", "Output with this read-group tag (only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
+      ("R, read-group", "Use this sample name for all input files (used only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
       ("p, non-primary", "Use non-primmary read-alignments.", cxxopts::value<bool>()->default_value("false"))
       ("l, omit-nonspanning", "Omit non-spanning reads.", cxxopts::value<bool>()->default_value("false"))
@@ -39,7 +39,7 @@ void command_assemble_parser(int argc, char** argv){
       ("t, threads", "Total number of threads.", cxxopts::value<int>()->default_value("4"));
     options
       .add_options("PRESETS")
-      ("w, wga", "Whole-genome alignment mode: '-lp --reads-only'.", cxxopts::value<bool>()->default_value("false"));
+      ("w, wga", "[DEPRICATED] Whole-genome alignment mode: '-lp --reads-only'.", cxxopts::value<bool>()->default_value("false"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
     std::vector<std::string> inputs;
