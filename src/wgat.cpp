@@ -17,7 +17,7 @@
 #include <mutex>
 #include <cmath>
 
-void construct_bed_interval_tree2(const uint32_t& offset, const std::vector<BED>& bed_regions, IntervalTree<int, int>& bed_tree)
+void construct_bed_interval_tree(const uint32_t& offset, const std::vector<BED>& bed_regions, IntervalTree<int, int>& bed_tree)
 {
     std::vector<Interval<int, int>> bed_intervals;
 	for(int i = 0; i < (int)bed_regions.size(); ++i) {
@@ -62,7 +62,7 @@ void wga_fa_genotyper(const OtterOpts& params, const std::string& fasta, const s
 void wga_bam_genotyper(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, BS::thread_pool& pool)
 {
 	IntervalTree<int, int> bed_tree;
-	construct_bed_interval_tree2(params.offset, bed_regions, bed_tree);
+	construct_bed_interval_tree(params.offset, bed_regions, bed_tree);
 
 	std::vector<std::string> ref_chrms;
 	{
