@@ -23,6 +23,7 @@ void command_assemble_parser(int argc, char** argv){
       ("r, reference", "Path to reference genome.", cxxopts::value<std::string>()->default_value(""))
       ("sam", "Output in SAM-format.", cxxopts::value<bool>()->default_value("false"))
       ("R, read-group", "Use this sample name for all input files (used only when using '--sam').", cxxopts::value<std::string>()->default_value(""))
+      ("i, ignore-haps", "Ignore haplotag (HP) field.", cxxopts::value<bool>()->default_value("false"))
       ("reads-only", "Output only (partial)spanning reads.", cxxopts::value<bool>()->default_value("false"))
       ("p, non-primary", "Use non-primmary read-alignments.", cxxopts::value<bool>()->default_value("false"))
       ("l, omit-nonspanning", "Omit non-spanning reads.", cxxopts::value<bool>()->default_value("false"))
@@ -56,6 +57,7 @@ void command_assemble_parser(int argc, char** argv){
       if(result["wga"].as<bool>()) params.is_wga = true; else params.is_wga = false;
       params.is_sam = result["sam"].as<bool>();
       params.read_group = result["read-group"].as<std::string>();
+      params.ignore_haps = result["ignore-haps"].as<bool>();
       params.init_offset(result["offset"].as<int>());
       params.init_max_alleles(result["max-alleles"].as<int>());
       params.init_mapq(result["mapq"].as<int>());

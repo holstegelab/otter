@@ -7,6 +7,7 @@
 #include <map>
 
 extern const std::string rg_tag;
+extern const std::string pg_tag;
 extern const std::string ta_tag;
 extern const std::string ac_tag;
 extern const std::string tc_tag;
@@ -15,6 +16,15 @@ void index_read_groups(
 	const std::string&, 
 	std::map<std::string, int>&, 
 	std::vector<std::string>&
+);
+
+void fetch_preset_offset(
+	const std::string&, 
+	int&
+);
+
+void output_preset_offset_tag(
+	const int& offset
 );
 
 void parse_bam_allele(

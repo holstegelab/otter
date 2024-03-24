@@ -9,6 +9,7 @@
 #include <algorithm>
 
 const std::string rg_tag = "RG";
+const std::string pg_tag = "PG";
 const std::string ta_tag = "ta";
 const std::string ac_tag = "ac";
 const std::string tc_tag = "tc";
@@ -26,9 +27,28 @@ void index_read_groups(const std::string& bam, std::map<std::string, int>& sampl
 		sample_index.emplace_back(local_sample);
 		result = sam_hdr_line_name(bam_inst.header, rg_tag.c_str(), index++);
 	}
+	result = sam_hdr_line_name(bam_inst.header, pg_tag.c_str(), index++);
+	delete []result;
 	bam_inst.destroy();
 	for(int i = 0; i < (int)sample_index.size(); ++i) sample2index[sample_index[i]] = i;
 }
+
+void fetch_preset_offset(const std::string& bam, int& otter_offset)
+{
+	BamInstance bam_inst;
+	bam_inst.init(bam, false);
+	const char* result;
+	int index = 0;
+	//result = sam_hdr_line_name(bam_inst.header, pg_tag.c_str(), index++);
+	while((result = sam_hdr_line_name(bam_inst.header, pg_tag.c_str(), index++)) != nullptr) {
+		std::string tmp_str = result;
+		if(tmp_str.size() >= 6 && tmp_str.substr(0, 6) == "OTTER_") otter_offset = std::stoi(tmp_str.substr(6));
+	}
+	delete []result;
+	bam_inst.destroy();
+}
+
+void output_preset_offset_tag(const int& offset){std::cout << "@PG\tID:OTTER_" << offset << '\n';}
 
 void parse_bam_allele(const std::string& target_region, const int& ac_mincov, const int& tc_mincov, const std::map<std::string,int>& sample2index, bam1_t*& read, std::vector<std::string>& alleles, std::vector<int>& sample_indeces)
 {

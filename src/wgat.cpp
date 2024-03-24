@@ -1,6 +1,7 @@
 #include "wgat.hpp"
 #include "antimestamp.hpp"
 #include "anbamfilehelper.hpp"
+#include "bam_db.hpp"
 #include "anbed.hpp"
 #include "otter_opts.hpp"
 #include "fasta_helper.hpp"
@@ -41,16 +42,19 @@ void wga_fa_genotyper(const OtterOpts& params, const std::string& fasta, const s
 			const BED& local_bed = bed_regions[bed_i];
 			BED mod_bed = local_bed;
 			mod_bed.start -= (uint32_t)params.offset;
-			mod_bed.end += (uint32_t)params.offset;
-			std::string seq;
-			faidx_inst.fetch(mod_bed.chr, mod_bed.start, mod_bed.end, seq);
-			std_out_mtx.lock();
-			if(params.is_sam) output_fa2sam(params.read_group, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, -1, -1, 1, 1, -1, -1);
+			mod_bed.end += (uint32_t)params.offset - 1;
+			if(mod_bed.end < mod_bed.start) std::cerr << "(" << antimestamp() << "): WARNING: skipping " << local_bed.toBEDstring() << ", negative coord-range (" << mod_bed.chr << ':' << mod_bed.start << '-' << mod_bed.end << std::endl;
 			else{
-				std::cout << '>' << local_bed.toBEDstring() << '\n';
-				std::cout << seq << '\n';
+				std::string seq;
+				faidx_inst.fetch(mod_bed.chr, mod_bed.start, mod_bed.end, seq);
+				std_out_mtx.lock();
+				if(params.is_sam) output_fa2sam(params.read_group, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, 0, 0, 1, 1, -1, -1, -1, -1);
+				else{
+					std::cout << '>' << local_bed.toBEDstring() << '\n';
+					std::cout << seq << '\n';
+				}
+				std_out_mtx.unlock();
 			}
-			std_out_mtx.unlock();
 		}
 
 		faidx_inst.destroy();
@@ -158,7 +162,7 @@ void wga_bam_genotyper(const OtterOpts& params, const std::string& bam, const st
 								//std::cout << local_bed.toBEDstring() << '\t' << name << ':' << query_start << '-' << query_end << '\n';
 								//std::cout << seq << '\n';
 								std_out_mtx.lock();
-								if(params.is_sam) output_fa2sam(name, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, -1, -1, int(!clipped_l), int(!clipped_r), -1, -1);
+								if(params.is_sam) output_fa2sam(name, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, -1, -1, int(!clipped_l), int(!clipped_r), -1, -1, -1, -1);
 								else{
 									std::cout << '>' << local_bed.toBEDstring() << '\t' << name << '\t' << int(!(clipped_l || clipped_r)) << '\n';
 									std::cout << seq << '\n';
@@ -193,12 +197,16 @@ void wgat(const std::string& input_file, const std::string& bed_file, const Otte
 				std::cout << "@SQ\tSN:" << bam_inst.header->target_name[i] << "\tLN:" << bam_inst.header->target_len[i] << '\n';
 			}
 			if(!params.read_group.empty()) std::cout << "@RG\tID:" << params.read_group << '\n';
+			output_preset_offset_tag(params.offset);
 			bam_inst.destroy();
  		}
  		wga_bam_genotyper(params, input_file, bed_regions, pool);
  	} 
  	else {
- 		if(params.is_sam) fa2sam(input_file, params.read_group, std::vector<std::string>{});
+ 		if(params.is_sam) {
+ 			fa2sam(input_file, params.read_group, std::vector<std::string>{});
+ 			output_preset_offset_tag(params.offset);
+ 		}
 		wga_fa_genotyper(params, input_file, bed_regions, pool);
  	}
 

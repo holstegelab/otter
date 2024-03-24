@@ -8,10 +8,8 @@ BED::BED(){};
 BED::BED(std::string c, uint32_t s, uint32_t e): chr(c), start(s), end(e){};
 
 BED::BED(const std::string& line){
-  if(line.empty()){
-    std::cerr << '(' << antimestamp() << "): Cannot parse empty BED line\n";
-    exit(1);
-  } else {
+  if(line.empty()) std::cerr << '(' << antimestamp() << "): Skipping empty BED line\n";
+  else {
       int index = 0;
       std::string value;
       std::istringstream stream(line);
@@ -40,10 +38,7 @@ BED::BED(const std::string& line){
 
 void BED::parse_multibed(const std::string& line)
 {
-  if(line.empty()){
-    fprintf(stderr,"Cannot parse empty BED line\n");
-    exit(1);
-  } 
+  if(line.empty()) fprintf(stderr,"Skipping empty BED line\n");
   else {
       int index = 0;
       std::string value;

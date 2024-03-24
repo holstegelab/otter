@@ -13,6 +13,7 @@ class DecisionBound{
 };
 
 double otter_seq_dist(
+	const bool&,
 	wfa::WFAligner& aligner, 
 	std::string& x, 
 	ParsingStatus& x_status, 
@@ -21,7 +22,9 @@ double otter_seq_dist(
 );
 
 void otter_pairwise_dist(
+	const bool&,
 	const std::vector<int>&,
+	const bool&,
 	AlignmentBlock&,
 	wfa::WFAligner&,
 	DistMatrix&
@@ -36,6 +39,7 @@ DecisionBound otter_find_clustering_dist(
 );
 
 void otter_hclust(
+	const bool& ignore_haps,
 	const int& max_alleles,
 	const double& bandwidth,
 	const double&,
@@ -72,6 +76,7 @@ void otter_realignment(
 );
 
 void otter_nonspanning_assigment(
+	const double&,
 	const double&,
 	const double&,
 	AlignmentBlock& sequences, 

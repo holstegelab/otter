@@ -29,10 +29,21 @@ class ParsingStatus {
     	bool is_spanning() const;
 };
 
+class Haplotag{
+    public:
+        int hp;
+        int ps;
+        Haplotag();
+        Haplotag(int, int);
+        bool operator==(const Haplotag &x) const;
+        bool is_defined() const;
+};
+
 class AlignmentBlock {
     public:
         std::vector<std::string> names;
         std::vector<std::string> seqs;
+        std::vector<Haplotag> hps;
         std::vector<ParsingStatus> statuses;
 
         bool n_spannable(int) const;

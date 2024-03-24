@@ -8,6 +8,9 @@
 #include <vector>
 #include <iostream>
 
+const std::string pba_hp_tag = "HP";
+const std::string pba_ps_tag = "PS";
+
 ParsingStatus::ParsingStatus(): successful(true),spanning_l(true), spanning_r(true)
 {
 	alignment_coords = std::make_pair(-1,-1);
@@ -20,6 +23,14 @@ bool ParsingStatus::is_spanning() const {return spanning_l && spanning_r;};
  	for(const auto& s : statuses) if(s.is_spanning()) ++m;
  	return m >= n;
  }
+
+Haplotag::Haplotag(): hp(-1), ps(-1){};
+
+Haplotag::Haplotag(int _hp, int _ps): hp(_hp),ps(_ps){};
+
+bool Haplotag::operator==(const Haplotag &x) const { return ps == x.ps && hp == x.hp;}
+
+bool Haplotag::is_defined() const { return ps >= 0 && hp >= 0; }
 
 void project_positions(bam1_t* alignment, bool& clipped_l, bool& clipped_r, std::vector<int>& refcoords)
 {
@@ -218,6 +229,15 @@ void parse_alignments(const OtterOpts& params, const BED& bed, const BamInstance
 					alignment_block.names.emplace_back(name);
 					alignment_block.seqs.emplace_back(seq);
 					alignment_block.statuses.emplace_back(msg);
+					int hp = -1;
+					int ps = -1;
+					if(!params.ignore_haps){
+						auto aux_ptr = bam_aux_get(bam_inst.read, pba_hp_tag.c_str());
+						if(aux_ptr != NULL) hp = bam_aux2i(aux_ptr);
+						aux_ptr = bam_aux_get(bam_inst.read, pba_ps_tag.c_str());
+						if(aux_ptr != NULL) ps = bam_aux2i(aux_ptr);
+					}
+					alignment_block.hps.emplace_back(Haplotag(hp, ps));
 				}
 			}
 		}

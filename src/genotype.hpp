@@ -4,9 +4,10 @@
 void genotype(
 	const std::string&,
 	const std::string&,
-	const OtterOpts&,
+	OtterOpts&,
 	const int&,
 	const int&,
 	const bool&,
-	const bool&
+	const bool&,
+	const std::string&
 );

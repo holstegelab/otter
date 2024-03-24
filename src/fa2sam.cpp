@@ -44,7 +44,7 @@ void fa2sam(const std::string& ref, const std::string& rg, const std::vector<std
 					++index;
 				}
 			}
-			output_fa2sam(bed, local_bed.chr, local_bed.start, local_bed.end, sequence, rg, acov, tcov, -1 , -1, ic,  se);
+			output_fa2sam(bed, local_bed.chr, local_bed.start, local_bed.end, sequence, rg, acov, tcov, -1 , -1, ic,  se, -1, -1);
 		}
 		kseq_destroy(seq);
 		gzclose(fp);

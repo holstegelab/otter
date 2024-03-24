@@ -20,6 +20,7 @@ void command_genotype_parser(int argc, char** argv){
       ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>());
     options
       .add_options("OPTIONAL")
+      ("v, vcf", "Output VCF using this sample name as reference genome", cxxopts::value<std::string>()->default_value(""))
       ("m, total-mincov", "Minimum total coverage per region", cxxopts::value<int>()->default_value("0"))
       ("c, allele-mincov", "Minimum coverage per allele sequence", cxxopts::value<int>()->default_value("0"))
       ("e, max-error", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.05"))
@@ -41,7 +42,8 @@ void command_genotype_parser(int argc, char** argv){
       const int tc_mincov = result["total-mincov"].as<int>();
       const bool is_summary = result["summary"].as<bool>();
       const bool is_length = result["length"].as<bool>();
-      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov, is_summary, is_length);
+      const std::string reference = result["vcf"].as<std::string>();
+      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov, is_summary, is_length, reference);
     }
   }
 
