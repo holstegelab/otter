@@ -24,6 +24,9 @@ class OtterOpts {
 		bool is_wga;
 		bool ignore_haps;
 		std::string read_group;
+		int dist_length_large;
+		double dist_length_frac;
+		double dist_length_se;
 
 		void init_offset(int);
 		void init_max_alleles(int);
@@ -36,6 +39,7 @@ class OtterOpts {
 		void init_flank(int);
 		void init_min_sim(double);
 		void init_min_cov_fraction2(std::string);
+		void init_dist_length(std::string);
 
 };
 

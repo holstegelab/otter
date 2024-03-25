@@ -9,6 +9,22 @@
 #include <iostream>
 #include <vector>
 
+
+void append_ref_sample(const BED& region, const int& offset, const int& ref_allele_i, std::mutex& stdout_mtx, FaidxInstance& faidx_inst, std::vector<std::string>& alleles, std::vector<int>& sample_indeces)
+{
+	std::string ref_allele;
+	faidx_inst.fetch(region.chr, region.start - offset, region.end + offset - 1, ref_allele);
+	if(ref_allele.empty()){
+		stdout_mtx.lock();
+		std::cerr << "(" << antimestamp() << "): WARNING: could not find reference sequence allele for " << region.toBEDstring() << std::endl;
+		stdout_mtx.unlock();
+	}
+	else{
+		alleles.emplace_back(ref_allele);
+		sample_indeces.emplace_back(ref_allele_i);
+	}
+}
+
 void gt_pairwise_alignment(const double& max_error, wfa::WFAlignerEdit& aligner, DistMatrix& matrix, std::vector<std::string>& alleles, std::vector<int>& labels)
 {
 	for(int i = 0; i < (int)alleles.size(); ++i){
@@ -132,7 +148,7 @@ void scaled_genotype(wfa::WFAlignerEdit& aligner, DistMatrix& matrix, std::vecto
 	for(int i = 0; i < (int)path.size(); ++i) scaled_labels[path[i]] = dists[i]/total_dist;
 }
 
-void output_vcf_header(const std::string& bam, const std::vector<std::string>& sample_index)
+void output_vcf_header(const std::string& bam, const std::vector<std::string>& sample_index, const std::string& ref_name)
 {
 	BamInstance bam_inst;
 	bam_inst.init(bam, true);
@@ -144,7 +160,7 @@ void output_vcf_header(const std::string& bam, const std::vector<std::string>& s
 	"##ALT=<ID=DEL,Description=\"Deletion\">\n" <<
 	"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	std::cout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	for(const auto& sample : sample_index) std::cout << '\t' << sample;
+	for(const auto& sample : sample_index) if(sample != ref_name) std::cout << '\t' << sample;
 	std::cout << '\n';
 }
 
@@ -174,15 +190,19 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 		std::cout << scaled_labels[i];
 	}
 	std::cout << "\tGT\t";
+	int samples_processed = 0;
 	for(int i = 0; i < (int)index2sample.size(); ++i){
-		const auto& interval_i = index2sampleintervals[i];
-		if(i > 0) std::cout << '\t';
-		if(interval_i < 0) std::cout << "./.";
-		else {
-			const auto& interval = sample2intervals[interval_i].second;
-			const int& a1 = labels[interval.first];
-			const int& a2 = labels[interval.second];
-			std::cout << (a1 < a2 ? a1 : a2) << '/' << (a1 > a2 ? a1 : a2);
+		if(i != ref_allele_i){
+			const auto& interval_i = index2sampleintervals[i];
+			if(samples_processed > 0) std::cout << '\t';
+			if(interval_i < 0) std::cout << "./.";
+			else {
+				const auto& interval = sample2intervals[interval_i];
+				const int& a1 = labels[interval.second.first];
+				const int& a2 = labels[interval.second.second];
+				std::cout << (a1 < a2 ? a1 : a2) << '/' << (a1 > a2 ? a1 : a2);
+			}
+			++samples_processed;
 		}
 	}
 	std::cout << '\n';
@@ -199,16 +219,18 @@ void center_ref_labels(const int& max_label, const int& ref_label, std::vector<i
 }
 
 
-void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const std::vector<BED>& regions, const std::string& bam, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, const int& reference_i)
+void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const std::vector<BED>& regions, const std::string& bam, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, const std::string& reference, const int& ref_allele_i)
 {
 	BS::thread_pool pool(params.threads);
 	std::mutex stdout_mtx;
 	pool.parallelize_loop(0, regions.size(),
-		[&pool, &stdout_mtx, &params, &ac_mincov, &tc_mincov, &is_summary, &is_length, &bam, &regions, &index2sample, &sample2index, &reference_i](const int a, const int b){
+		[&pool, &stdout_mtx, &params, &ac_mincov, &tc_mincov, &is_summary, &is_length, &bam, &regions, &index2sample, &sample2index, &reference, &ref_allele_i](const int a, const int b){
 			BamInstance bam_inst;
 			bam_inst.init(bam, true);
 			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
-			//aligner.setHeuristicBandedAdaptive(50, 50, 1);
+			FaidxInstance faidx_inst;
+			bool ref_is_fa = ref_allele_i >= 0 && !reference.empty();
+			if(ref_is_fa) faidx_inst.init(reference);
 			for(int region_i = a; region_i < b; ++region_i) {
 				const BED& region = regions[region_i];
 				const std::string region_str = region.chr + ':' + std::to_string(region.start) + '-' + std::to_string(region.end);
@@ -219,6 +241,7 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 					std::vector<std::string> alleles;
 					while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces);
 					if(alleles.size() > 1){
+						if(ref_is_fa) append_ref_sample(region, params.offset, ref_allele_i, stdout_mtx, faidx_inst, alleles, allele_sample_indeces);
 						sort_bam_alleles(allele_sample_indeces, alleles);
 						std::vector<std::pair<int, std::pair<int,int>>> sample2intervals;
 						set_sample_intervals(allele_sample_indeces, sample2intervals);
@@ -239,10 +262,10 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 								int max_label = 0;
 								for(int i = 0; i < (int)alleles.size(); ++i) if(labels[i] > max_label) max_label = labels[i];
 								++max_label;
-								int ref_allele_i = -1;
-								for(const auto& refinterval : sample2intervals) if(refinterval.first == reference_i) ref_allele_i = refinterval.second.first;	
-								if(ref_allele_i >= 0) center_ref_labels(max_label, ref_allele_i, labels);
-								else if(reference_i >= 0) std::cerr << '(' << antimestamp() << "): WARNING: reference sequence for " << region_str << " not found, skipping reference-encoded genotype recalibration\n";
+								int local_ref_allele_i = -1;
+								for(const auto& refinterval : sample2intervals) if(refinterval.first == ref_allele_i) local_ref_allele_i = refinterval.second.first;	
+								if(local_ref_allele_i >= 0) center_ref_labels(max_label, ref_allele_i, labels);
+								else if(local_ref_allele_i >= 0) std::cerr << '(' << antimestamp() << "): WARNING: reference sequence for " << region_str << " not found\n";
 								std::vector<int> label_counts(max_label, 0);
 				    			get_cluster_size(labels, label_counts);
 								std::vector<double> avg_sizes(max_label);
@@ -266,10 +289,10 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 										for(const auto& v : avg_sizes) n += ((v - u)*(v-u));
 										double se = std::sqrt(n/(avg_sizes.size() - 1));
 										double large = 0.0;
-										for(const auto& size : avg_sizes) if(size > 1000) ++large;
+										for(const auto& size : avg_sizes) if(size > params.dist_length_large) ++large;
 										large /= index2sample.size();
 										bool length_dist_function = false;
-										if(large >= 0.5 && se > 500) {
+										if(large >= params.dist_length_frac && params.dist_length_se > 500) {
 											stdout_mtx.lock();
 											std::cerr << "(" << antimestamp() << "): WARNING: " << region_str << " triggered length distance function (F1Kbp=" << large << ",SE=" << se << ')' << std::endl;
 											stdout_mtx.unlock();
@@ -277,9 +300,9 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 										}
 										scaled_genotype(aligner, matrix, reps, label_counts, alleles, scaled_labels, length_dist_function);
 				    				}
-				    				if(reference_i >= 0){
+				    				if(ref_allele_i >= 0){
 				    					stdout_mtx.lock();
-				    					output_vcf(region, params.offset, index2sample, sample2index, sample2intervals, labels, scaled_labels, alleles, reps, ref_allele_i);
+				    					output_vcf(region, params.offset, index2sample, sample2index, sample2intervals, labels, scaled_labels, alleles, reps, local_ref_allele_i);
 				    					stdout_mtx.unlock();
 				    				}
 				    				else{
@@ -302,12 +325,13 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 					}
 				}
 			}
+			faidx_inst.destroy();
 			bam_inst.destroy();
 	}).wait();
 
 }
 
-void genotype(const std::string& bam, const std::string& bed, OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const std::string& reference)
+void genotype(const std::string& bam, const std::string& bed, OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const std::string& reference, const std::string& vcf)
 {
 	std::vector<BED> regions;
 	parse_bed_file(bed, regions);
@@ -325,16 +349,33 @@ void genotype(const std::string& bam, const std::string& bed, OtterOpts& params,
 		params.offset = offset;
 	}
 
+	std::string ref_name;
+	if(!reference.empty()) ref_name = antimestamp();
+	else if(!vcf.empty()) ref_name = vcf;
+
 	int reference_i = -1;
 	if(!reference.empty()){
-		auto it = sample2index.find(reference);
-		if(it != sample2index.end()) reference_i = it->second;
-		else std::cerr << '(' << antimestamp() << "): WARNING: reference sample name not found in read-group tag of input BAM: " << reference << '\n';
+		auto it = sample2index.find(ref_name);
+		if(it != sample2index.end()) {
+			std::cerr << '(' << antimestamp() << "): ERROR: duplicate reference name: " << ref_name << '\n';
+			exit(1);
+		}
+		else {
+			reference_i = (int)sample_index.size();
+			sample2index[ref_name] = reference_i;
+			sample_index.emplace_back(ref_name);
+		};
+	}
+	else if(!vcf.empty()){
+		auto it = sample2index.find(ref_name);
+		if(it == sample2index.end()) std::cerr << '(' << antimestamp() << "): WARNING: could not find reference genome (" << ref_name << ") in input BAM file\n";
+		else reference_i = it->second;
 	}
 
 	if(reference_i >= 0) {
-		std::cerr << '(' << antimestamp() << "): Genotyping with reference sample name " << reference << " corresponding to sample-index " << reference_i << '\n';
-		if(reference_i >= 0) output_vcf_header(bam, sample_index);
+		std::cerr << '(' << antimestamp() << "): Genotyping with reference genome " << (reference.empty() ? ref_name : reference) << '\n';
+		output_vcf_header(bam, sample_index, ref_name);
 	}
-	pairwise_process(params, ac_mincov, tc_mincov, is_summary, is_length, regions, bam, sample_index, sample2index, reference_i);
+
+	pairwise_process(params, ac_mincov, tc_mincov, is_summary, is_length, regions, bam, sample_index, sample2index, reference, reference_i);
 }
