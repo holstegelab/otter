@@ -27,7 +27,6 @@ void index_read_groups(const std::string& bam, std::map<std::string, int>& sampl
 		sample_index.emplace_back(local_sample);
 		result = sam_hdr_line_name(bam_inst.header, rg_tag.c_str(), index++);
 	}
-	result = sam_hdr_line_name(bam_inst.header, pg_tag.c_str(), index++);
 	delete []result;
 	bam_inst.destroy();
 	for(int i = 0; i < (int)sample_index.size(); ++i) sample2index[sample_index[i]] = i;
