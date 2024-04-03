@@ -110,9 +110,13 @@ int get_next_node(const std::vector<bool>& visited){
 
 void scaled_genotype(wfa::WFAlignerEdit& aligner, DistMatrix& matrix, std::vector<int>& reps, std::vector<int>& counts, std::vector<std::string>& alleles, std::vector<double>& scaled_labels, bool& length_dist_function)
 {
+
 	recompute_pairwise_alignment(aligner, matrix, alleles, reps, length_dist_function);
+
 	int start = 0;
-	for(int i = 1; i < (int)reps.size(); ++i) if(alleles[reps[i]].size() > alleles[reps[start]].size()) start = i;
+	for(int i = 1; i < (int)reps.size(); ++i) if(alleles[reps[i]].size() < alleles[reps[start]].size()) start = i;
+
+	//std::cout << "startin at " << start << '\n';
 
 	std::vector<bool> visited(reps.size(), false);
 	std::vector<int> path;
@@ -145,7 +149,10 @@ void scaled_genotype(wfa::WFAlignerEdit& aligner, DistMatrix& matrix, std::vecto
 			dists.emplace_back(total_dist);
 		}
 	}
+	//std::cout << total_dist << '\n';
+	//for(const auto& d : dists) std::cout << d << '\n';
 	for(int i = 0; i < (int)path.size(); ++i) scaled_labels[path[i]] = dists[i]/total_dist;
+	//for(const auto& s : scaled_labels) std::cout << s << '\n';
 }
 
 void output_vcf_header(const std::string& bam, const std::vector<std::string>& sample_index, const std::string& ref_name)
@@ -174,6 +181,7 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 	else{
 		int ref_label = -1;
 		if(ref_allele_i >= 0) ref_label = labels[ref_allele_i];
+		//std::cout << "outputing " << ref_label << '\t' << ref_allele_i << '\n';
 		bool past_first = false;
 		for(int i = 0; i < (int)reps.size(); ++i){
 			if(i != ref_label) {
@@ -264,8 +272,9 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 								++max_label;
 								int local_ref_allele_i = -1;
 								for(const auto& refinterval : sample2intervals) if(refinterval.first == ref_allele_i) local_ref_allele_i = refinterval.second.first;	
-								if(local_ref_allele_i >= 0) center_ref_labels(max_label, ref_allele_i, labels);
-								else if(local_ref_allele_i >= 0) std::cerr << '(' << antimestamp() << "): WARNING: reference sequence for " << region_str << " not found\n";
+								if(local_ref_allele_i >= 0) center_ref_labels(max_label, labels[local_ref_allele_i], labels);
+								else if(ref_allele_i >= 0) std::cerr << '(' << antimestamp() << "): WARNING: reference sequence for " << region_str << " not found\n";
+								//std::cout << "old ref label " << local_ref_allele_i << " new ref label is " << labels[local_ref_allele_i] << '\n';
 								std::vector<int> label_counts(max_label, 0);
 				    			get_cluster_size(labels, label_counts);
 								std::vector<double> avg_sizes(max_label);
@@ -280,6 +289,7 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 			    				else{
 				    				std::vector<int> reps(max_label);
 				    				find_reps(matrix, alleles, labels, reps);
+				    				//for(const auto& r : reps) std::cout << r << '\t' << alleles[r] << '\n';
 				    				std::vector<double> scaled_labels(max_label);
 				    				if(max_label <= 2) for(int i = 0; i < max_label; ++i) scaled_labels[i] = i;
 				    				else{
@@ -314,8 +324,6 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 						    				//bool is_a1_min = a1 < a2;
 						    				stdout_mtx.lock();
 						    				std::cout << index2sample[sample2intervals[i].first] << '\t' << region_str << '\t' << a1 << '/' << a2 << '\t' << sa1 << '/' << sa2 << '\n';
-						    				//if(is_a1_min) std::cout << a1 << '/' << a2; else std::cout << a2 << '/' << a1;
-						    				//std::cout << '\n';
 						    				stdout_mtx.unlock();
 						    			}
 				    				}

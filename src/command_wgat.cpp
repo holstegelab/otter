@@ -15,7 +15,7 @@ void command_wgat_parser(int argc, char** argv){
       .show_positional_help()
       .set_width(120)
       .set_tab_expansion()
-      .custom_help("[parameters] <BAM|FASTA[.GZ]>")
+      .custom_help("[parameters] <BAM|FASTA[.GZ]> ...")
       .add_options(" REQUIRED")
       ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>());
     options
@@ -43,7 +43,7 @@ void command_wgat_parser(int argc, char** argv){
       }
       params.init_offset(result["offset"].as<int>());
       params.init_threads(result["threads"].as<int>());
-      wgat(inputs.front(), bed, params);
+      wgat(inputs, bed, params);
     }
   }
 
