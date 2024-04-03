@@ -174,7 +174,13 @@ void output_vcf_header(const std::string& bam, const std::vector<std::string>& s
 void output_vcf(const BED& region, const int& offset, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, const std::vector<std::pair<int, std::pair<int,int>>>& sample2intervals, const std::vector<int>& labels, const std::vector<double>& scaled_labels, const std::vector<std::string>& alleles, const std::vector<int>& reps, const int& ref_allele_i)
 {
 	std::vector<int> index2sampleintervals(index2sample.size(), -1);
-	for(int i = 0; i < (int)sample2intervals.size(); ++i) index2sampleintervals[sample2intervals[i].first] = i;
+	int ref_sample_i = -1;
+	for(int i = 0; i < (int)sample2intervals.size(); ++i) {
+		//index2sampleintervals[sample2intervals[i].first] = i;
+		const auto& interval = sample2intervals[i];
+		index2sampleintervals[interval.first] = i;
+		if(interval.second.first == ref_allele_i) ref_sample_i = interval.first;
+	}
 	std::cout << region.chr << '\t' << (1 + region.start - offset) << '\t' << region.toBEDstring() << '\t';
 	if(ref_allele_i < 0) std::cout << "N\t"; else std::cout << alleles[ref_allele_i] << '\t';
 	if(reps.size() == 1) {if(ref_allele_i < 0) std::cout << alleles[reps[0]]; else std::cout << '.';}
@@ -200,7 +206,7 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 	std::cout << "\tGT\t";
 	int samples_processed = 0;
 	for(int i = 0; i < (int)index2sample.size(); ++i){
-		if(i != ref_allele_i){
+		if(i != ref_sample_i){
 			const auto& interval_i = index2sampleintervals[i];
 			if(samples_processed > 0) std::cout << '\t';
 			if(interval_i < 0) std::cout << "./.";
