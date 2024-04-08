@@ -31,6 +31,8 @@ void otter_pairwise_dist(
 );
 
 DecisionBound otter_find_clustering_dist(
+	const int&,
+	const double&,
 	const double&,
 	const std::vector<int>&,
 	AlignmentBlock&, 

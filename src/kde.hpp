@@ -11,7 +11,7 @@ class KDE {
 
 		KDE(double);
 		double f(double) const;
-		void maximas(const std::vector<double>&, std::vector<std::pair<int,double>>&, std::vector<std::pair<int,double>>&) const;
+		void maximas(const int&, const std::vector<double>&, std::vector<std::pair<int,double>>&, std::vector<std::pair<int,double>>&) const;
 	
 	private:
 		double pi = 3.14159265358979323846;

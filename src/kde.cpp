@@ -22,9 +22,8 @@ double KDE::f(double x) const
 	return total / values.size();
 }
 
-void KDE::maximas(const std::vector<double>& densities, std::vector<std::pair<int,double>>& maxs, std::vector<std::pair<int,double>>& mins) const
+void KDE::maximas(const int& width, const std::vector<double>& densities, std::vector<std::pair<int,double>>& maxs, std::vector<std::pair<int,double>>& mins) const
 {
-	int width = 3;
 	bool find_maxima = true;
 	double last_sum = 0.0;
 	int last_sum_i = 1;

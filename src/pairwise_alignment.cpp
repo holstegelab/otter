@@ -49,35 +49,41 @@ void otter_pairwise_dist(const bool& ignore_haps, const std::vector<int>& indece
 
 }
 
-DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vector<int>& indeces, AlignmentBlock& sequences, wfa::WFAligner& aligner, DistMatrix& distmatrix)
+DecisionBound otter_find_clustering_dist(const int& width, const double& dinterval, const double& bandwidth, const std::vector<int>& indeces, AlignmentBlock& sequences, wfa::WFAligner& aligner, DistMatrix& distmatrix)
 {
 	KDE kde(bandwidth);
 	for(const auto& v : distmatrix.values) kde.values.emplace_back(v);
 
  	std::vector<double> densities;
-	for(double x = 0.0; x <= 1.0; x += bandwidth) {
+	for(double x = 0.0; x <= 1.0; x += dinterval) {
 		densities.emplace_back(kde.f(x));
 	}
 	double total = 0.0;
 	for(const auto& d : densities) total += d;
 	for(int i = 0; i < (int)densities.size(); ++i) {
 		densities[i] = densities[i]/total;
-		//std::cout << (i*bandwidth) << '\t' << densities[i] << '\n';
+		//std::cerr << (i*dinterval) << '\t' << densities[i] << '\n';
 	}
 
 	std::vector<std::pair<int,double>> maximas;
 	std::vector<std::pair<int,double>> minimas;
-	kde.maximas(densities, maximas, minimas);
-	
+	kde.maximas(width, densities, maximas, minimas);
 	/**
-	for(const auto& m : maximas) std::cout << '[' << (m.first*bandwidth) << ',' << m.second << "] ";
-	std::cout << std::endl;
-	for(const auto& m : minimas) std::cout << '[' << (m.first*bandwidth) << ',' << m.second << "] ";
-	std::cout << std::endl;
+	for(const auto& m : maximas) std::cerr << '[' << (m.first*dinterval) << ',' << m.second << "] ";
+	std::cerr << std::endl;
+	for(const auto& m : minimas) std::cerr << '[' << (m.first*dinterval) << ',' << m.second << "] ";
+	std::cerr << std::endl;
 	*/
 
 	
- 	if(maximas.size() == 1) return DecisionBound(maximas[0].first*bandwidth,maximas[0].first*bandwidth,-1.0);
+ 	if(maximas.size() == 1) return DecisionBound(maximas[0].first*dinterval,maximas[0].first*dinterval,-1.0);
+ 	else if(maximas.size() == 2) {
+ 		if(minimas.empty()){
+ 			std::cerr << "ERROR: failed to obtain minimas for : " << '\n';
+		    exit(1);
+ 		}
+ 		return DecisionBound(maximas[0].first*dinterval,maximas[1].first*dinterval,minimas[0].first*dinterval);
+ 	}
 	else {
 		std::vector<int> sorted_maximas(maximas.size());
 		for(int i = 0; i < (int)sorted_maximas.size(); ++i) sorted_maximas[i] = i;
@@ -88,13 +94,12 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 			else return maximas[a].second > maximas[b].second;
 		});
 		
-		//std::vector<int> sorted_maximas2 = sorted_maximas;
 		double last_i = 0;	
 		auto itr = sorted_maximas.begin() + 1;
 		while(itr < sorted_maximas.end()){
 			if(last_i == *itr) ++itr;
 			else{
-				if(maximas[sorted_maximas[last_i]].second - maximas[*itr].second  <= 0.01){
+				if(maximas[sorted_maximas[last_i]].second - maximas[*itr].second  <= 0.01 && (maximas[sorted_maximas[*itr]].first*dinterval - maximas[last_i].first*dinterval) <= 0.01){
 					itr = sorted_maximas.erase(itr);
 					last_i = *itr;
 				}
@@ -102,20 +107,23 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 			}
 		}
 
-		//for(const auto& s : sorted_maximas) std::cout << maximas[s].first*bandwidth << '\t' << maximas[s].second << '\n';
+		if(sorted_maximas.size() < 2) return DecisionBound(maximas[0].first*dinterval,maximas[1].first*dinterval,minimas[0].first*dinterval);
+		else{
+			//for(const auto& s : sorted_maximas) std::cout << maximas[s].first*bandwidth << '\t' << maximas[s].second << '\n';
 		
-		//int m_first_i = 0, m_second_i = 0;
-		int m_first_i = sorted_maximas[0];
-		int m_second_i = sorted_maximas[1];
-		if(m_first_i > m_second_i){
-			int tmp = m_first_i;
-			m_first_i = m_second_i;
-			m_second_i = tmp;
-		}
-		int boundary_i = m_second_i - 1;
-		if(m_second_i - m_first_i > 1 && m_second_i - 2 >= 0 && (maximas[m_second_i].first*bandwidth - minimas[boundary_i].first*bandwidth <= 0.01)) boundary_i = m_second_i - 2;
+			//int m_first_i = 0, m_second_i = 0;
+			int m_first_i = sorted_maximas[0];
+			int m_second_i = sorted_maximas[1];
+			if(m_first_i > m_second_i){
+				int tmp = m_first_i;
+				m_first_i = m_second_i;
+				m_second_i = tmp;
+			}
+			int boundary_i = m_second_i - 1;
+			if(m_second_i - m_first_i > 1 && m_second_i - 2 >= 0 && (maximas[m_second_i].first*dinterval - minimas[boundary_i].first*dinterval <= 0.01)) boundary_i = m_second_i - 2;
 
-		return DecisionBound(maximas[m_first_i].first*bandwidth, maximas[m_second_i].first*bandwidth, minimas[boundary_i].first*bandwidth); 
+			return DecisionBound(maximas[m_first_i].first*dinterval, maximas[m_second_i].first*dinterval, minimas[boundary_i].first*dinterval); 
+		}
 	}
 }
 
@@ -135,8 +143,10 @@ void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double&
 			initial_clusters = 1;
 		}
 		else{
-			DecisionBound dists = otter_find_clustering_dist(bandwidth, spannable_indeces, sequences, aligner, distmatrix);
-			//std::cout << dists.dist0 << '\t' << dists.dist1 << '\t' << dists.cut0 << std::endl;
+			int width = int(max_tolerable_diff/0.0025);
+			width = width < 1 ? 1 : width;
+			DecisionBound dists = otter_find_clustering_dist(width, 0.0025, bandwidth, spannable_indeces, sequences, aligner, distmatrix);
+			//std::cerr << dists.dist0 << '\t' << dists.dist1 << '\t' << dists.cut0 << std::endl;
 			int* merge = new int[2*(spannable_indeces.size()-1)];
 		    double* height = new double[spannable_indeces.size()-1];
 		    auto distmatrix_cpy = distmatrix.values;
