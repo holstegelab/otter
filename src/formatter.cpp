@@ -30,8 +30,8 @@ void output_fa2sam(const std::string& read, const std::string& chr, const int& s
     //in some situations, an assembled read connects two phase sets
     if(hps.size() > 1 && hps[1].is_defined())
     {
-        std::cout << "\tPS2:i:" << hps[0].ps;
-        std::cout << "\tHP2:i:" << hps[0].hp;
+        std::cout << "\txs:i:" << hps[1].ps;
+        std::cout << "\txp:i:" << hps[1].hp;
     }
    
 	std::cout << '\n';

@@ -106,33 +106,35 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 								++spanning_cov;
 							}
 						}
-						for(int k = 0; k < (int)labels.size(); ++k) {
-							if(labels[k] == j && alignment_block.hps[k].is_defined()) {
-                                
-                                for(int l = 0; l < (int) tags.size(); ++l)
+						if(!params.ignore_haps && consensus_seqs.size() > 1) {
+                            for(int k = 0; k < (int)labels.size(); ++k) {
+                                if(labels[k] == j && alignment_block.hps[k].is_defined()) 
                                 {
-                                    if(tags[l] == alignment_block.hps[k])
-                                        continue;
-
-                                    if(tags[l].ps == alignment_block.hps[k].ps) conflict_hp = true;  //existing phase set, so a conflict
-                                    else  tags.emplace_back(alignment_block.hps[k]); //additional phase set
+                                    bool phaseset_found=false;
+                                    for(int l = 0; l < (int) tags.size(); ++l)
+                                    {
+                                        if(tags[l] == alignment_block.hps[k]) phaseset_found=true;
+                                        else if(tags[l].ps == alignment_block.hps[k].ps) conflict_hp = true;  //existing phase set, so a conflict
+                                    }
+                                    if(!phaseset_found) tags.emplace_back(alignment_block.hps[k]); //additional phase set
                                 }
-							}
-						}
-						if(conflict_hp){
-							std_out_mtx.lock();
-							std::cerr << '(' << antimestamp() << "): WARNING: conflicting HP-tag for reads in " << local_bed.toBEDstring() << '\n';
-							std_out_mtx.unlock();
-                            tags.clear();
-						}
-                        if(tags.size() > 2)
-                        {
-   							std_out_mtx.lock();
-							std::cerr << '(' << antimestamp() << "): WARNING: more than two phase sets assigned to a cluster for " << local_bed.toBEDstring() << '\n';
-							std_out_mtx.unlock();
+                            }
+                            if(conflict_hp){
+                                std_out_mtx.lock();
+                                std::cerr << '(' << antimestamp() << "): WARNING: conflicting HP-tag for reads in " << local_bed.toBEDstring() << '\n';
+                                for(int l = 0; l < (int) tags.size(); ++l) std::cerr << " - " << tags[l].ps << ":" << tags[l].hp << '\n';
+                                std_out_mtx.unlock();
+                                tags.clear();
+                            }
+                            if(tags.size() > 2)
+                            {
+   								std_out_mtx.lock();
+                                std::cerr << '(' << antimestamp() << "): WARNING: more than two phase sets assigned to a cluster for " << local_bed.toBEDstring() << '\n';
+                                std_out_mtx.unlock();
+                            }
+						    
                         }
 
-						if(params.max_alleles == 1) tags.clear();
 						for(const auto& l : labels) if(l == j) ++cov;
 						double se; 
 						if(spanning_cov == 1) se = -1;
@@ -155,7 +157,6 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							std_out_mtx.unlock();
 						}
 					}
-					std_out_mtx.unlock();
 				}
 			}
 		}
