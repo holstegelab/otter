@@ -12,15 +12,18 @@
 
 DecisionBound::DecisionBound(double x, double y, double z): dist0(x),dist1(y),cut0(z){};
 
-double otter_seq_dist(const bool& ignore_haps, wfa::WFAligner& aligner, std::string& x, ParsingStatus& x_status, int& x_hp, std::string& y, ParsingStatus& y_status, int& y_hp)
+double otter_seq_dist(const bool& ignore_haps, wfa::WFAligner& aligner, std::string& x, ParsingStatus& x_status, Haplotag& x_ht, std::string& y, ParsingStatus& y_status, Haplotag& y_ht)
 {
 	if(!x_status.is_spanning() && !y_status.is_spanning()) return -1;
 	else{
-		if(!ignore_haps && x_hp >= 0 && y_hp >= 0){
-			if(x_hp == y_hp) return 0; 
-			else return 1.0;
+		
+        if(!ignore_haps && x_ht.is_defined() && y_ht.is_defined()){
+			if(x_ht == y_ht) return 0;
+			else if(x_ht.ps == y_ht.ps)     return 1.0;
+            //otherwise: different PS haploblock, fallback to alignment based distance
 		} 
-		else if(x == y) return 0.0;
+		
+        if(x == y) return 0.0;
 		else{
 			bool x_smallest = x.size() < y.size();
 			double largest = x_smallest ? (double)y.size() : (double)x.size();
@@ -41,7 +44,7 @@ void otter_pairwise_dist(const bool& ignore_haps, const std::vector<int>& indece
 {
 	for(int i = 0; i < (int)indeces.size(); ++i){
 		for(int j = i + 1; j < (int)indeces.size(); ++j){
-			double dist = otter_seq_dist(ignore_haps, aligner, sequences.seqs[indeces[i]], sequences.statuses[indeces[i]], sequences.hps[indeces[i]].hp, sequences.seqs[indeces[j]], sequences.statuses[indeces[j]], sequences.hps[indeces[j]].hp);
+			double dist = otter_seq_dist(ignore_haps, aligner, sequences.seqs[indeces[i]], sequences.statuses[indeces[i]], sequences.hps[indeces[i]], sequences.seqs[indeces[j]], sequences.statuses[indeces[j]], sequences.hps[indeces[j]]);
 			if(is_indeces_subset) distmatrix.set_dist((uint32_t)indeces[i], (uint32_t)indeces[j], dist); 
 			else distmatrix.set_dist((uint32_t)i, (uint32_t)j, dist);
 		}
@@ -77,7 +80,7 @@ void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double&
 	cluster_labels.resize(sequences.names.size(), -1);
 	if(spannable_indeces.size() == 1) cluster_labels[spannable_indeces[0]] = 0;
 	else if(spannable_indeces.size() == 2){
-		double dist = otter_seq_dist(ignore_haps, aligner, sequences.seqs[0], sequences.statuses[0], sequences.hps[0].hp, sequences.seqs[1], sequences.statuses[1], sequences.hps[1].hp);
+		double dist = otter_seq_dist(ignore_haps, aligner, sequences.seqs[0], sequences.statuses[0], sequences.hps[0], sequences.seqs[1], sequences.statuses[1], sequences.hps[1]);
 		cluster_labels[spannable_indeces[0]] = 0;
 		cluster_labels[spannable_indeces[1]] = dist > max_tolerable_diff ? 1 : 0;
 	}
@@ -303,8 +306,8 @@ void otter_nonspanning_assigment(const double& ignore_haps, const double& min_si
 						else aligner.alignEndsFree(sequences.seqs[i], 0, 0, sequences.seqs[j], (j_l - i_l)/2, (j_l - i_l)/2);
 					}
 					double sim = 1 - (aligner.getAlignmentScore() / (double)i_l);
-					if(!ignore_haps && sequences.hps[i].hp >= 0 && sequences.hps[j].hp >= 0) {
-						if(sequences.hps[i].hp == sequences.hps[j].hp) sim = 1.1;
+					if(!ignore_haps && sequences.hps[i].is_defined() && sequences.hps[j].is_defined()) {
+						if(sequences.hps[i] == sequences.hps[j]) sim = 1.1;
 					}
 					if(sim > max_sim[labels[j]]) max_sim[labels[j]] = sim;
 				}

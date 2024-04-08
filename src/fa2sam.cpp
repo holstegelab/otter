@@ -1,4 +1,5 @@
 #include "fa2sam.hpp"
+#include "parse_bam_alignments.hpp"
 #include "formatter.hpp"
 #include "anbed.hpp"
 #include "antimestamp.hpp"
@@ -19,6 +20,7 @@ void fa2sam(const std::string& ref, const std::string& rg, const std::vector<std
 
 	std::cout << "@RG\tID:" << rg << '\n';
 
+    std::vector<Haplotag> tags;
 	for(const auto& fa : fastas){
 		gzFile fp = gzopen(fa.c_str(), "r");
 		kseq_t *seq = kseq_init(fp);
@@ -44,7 +46,8 @@ void fa2sam(const std::string& ref, const std::string& rg, const std::vector<std
 					++index;
 				}
 			}
-			output_fa2sam(bed, local_bed.chr, local_bed.start, local_bed.end, sequence, rg, acov, tcov, -1 , -1, ic,  se, -1, -1);
+
+			output_fa2sam(bed, local_bed.chr, local_bed.start, local_bed.end, sequence, rg, acov, tcov, -1 , -1, ic,  se, tags);
 		}
 		kseq_destroy(seq);
 		gzclose(fp);

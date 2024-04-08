@@ -7,6 +7,7 @@
 #include "fasta_helper.hpp"
 #include "formatter.hpp"
 #include "fa2sam.hpp"
+#include "parse_bam_alignments.hpp"
 #include "BS_thread_pool.hpp"
 #include <htslib/faidx.h>
 #include "interval_tree.h"
@@ -38,6 +39,7 @@ void wga_fa_genotyper(const OtterOpts& params, const std::string& fasta, const s
 	pool.parallelize_loop(0, bed_regions.size(), [&pool, &std_out_mtx, &fasta, &bed_regions, &params](const int a, const int b){
 		FaidxInstance faidx_inst;
 		faidx_inst.init(fasta);
+        std::vector<Haplotag> tags;
 		for(int bed_i = a; bed_i < b; ++bed_i){
 			const BED& local_bed = bed_regions[bed_i];
 			BED mod_bed = local_bed;
@@ -48,7 +50,7 @@ void wga_fa_genotyper(const OtterOpts& params, const std::string& fasta, const s
 				std::string seq;
 				faidx_inst.fetch(mod_bed.chr, mod_bed.start, mod_bed.end, seq);
 				std_out_mtx.lock();
-				if(params.is_sam) output_fa2sam(params.read_group, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, 1, 1, 1, 1, -1, -1, -1, -1);
+				if(params.is_sam) output_fa2sam(params.read_group, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, 1, 1, 1, 1, -1, -1, tags);
 				else{
 					std::cout << '>' << local_bed.toBEDstring() << '\n';
 					std::cout << seq << '\n';
@@ -65,6 +67,7 @@ void wga_fa_genotyper(const OtterOpts& params, const std::string& fasta, const s
 
 void wga_bam_genotyper_process(const OtterOpts& params, const std::vector<BED>& bed_regions, const IntervalTree<int, int>& bed_tree, const std::vector<std::string>& ref_chrms, const int& a, const int& b, std::mutex& std_out_mtx, BS::thread_pool& pool, BamInstance& bam_inst)
 {
+    std::vector<Haplotag> tags;
 	for(int chr_i = a; chr_i < b; ++chr_i){
 		hts_itr_t *iter = sam_itr_querys(bam_inst.idx, bam_inst.header, ref_chrms[chr_i].c_str());
 		if(iter == nullptr) std::cerr << "(" << antimestamp() << "): WARNING: query failed at contig " <<  ref_chrms[chr_i] << std::endl;
@@ -139,7 +142,7 @@ void wga_bam_genotyper_process(const OtterOpts& params, const std::vector<BED>& 
 						//std::cout << local_bed.toBEDstring() << '\t' << name << ':' << query_start << '-' << query_end << '\n';
 						//std::cout << seq << '\n';
 						std_out_mtx.lock();
-						if(params.is_sam) output_fa2sam(name, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, 1, 1, int(!clipped_l), int(!clipped_r), -1, -1, -1, -1);
+						if(params.is_sam) output_fa2sam(name, local_bed.chr, local_bed.start, local_bed.end, seq, params.read_group, 1, 1, int(!clipped_l), int(!clipped_r), -1, -1, tags);
 						else{
 							std::cout << '>' << local_bed.toBEDstring() << '\t' << name << '\t' << int(!(clipped_l || clipped_r)) << '\n';
 							std::cout << seq << '\n';

@@ -237,6 +237,7 @@ void parse_alignments(const OtterOpts& params, const BED& bed, const BamInstance
 						aux_ptr = bam_aux_get(bam_inst.read, pba_ps_tag.c_str());
 						if(aux_ptr != NULL) ps = bam_aux2i(aux_ptr);
 					}
+                    if(hp >= 0 && ps == -1) ps = 0; //assign to a default phase set
 					alignment_block.hps.emplace_back(Haplotag(hp, ps));
 				}
 			}

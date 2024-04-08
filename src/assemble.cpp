@@ -54,7 +54,13 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 			if(reads_only){
 				std_out_mtx.lock();
 				for(int i = 0; i < (int)alignment_block.names.size(); ++i) {
-					if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1, -1.0, alignment_block.hps[i].ps, alignment_block.hps[i].hp);
+					if(params.is_sam) 
+                    {
+                        std::vector<Haplotag> tags;
+                        tags.emplace_back(alignment_block.hps[i]);
+
+                        output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1, -1.0, tags);
+                    }
 					else std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
 				}
 				std_out_mtx.unlock();
@@ -91,34 +97,42 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 					otter_nonspanning_assigment(params.ignore_haps, params.min_sim, params.max_error, alignment_block, aligner, labels);
 					//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\t' << alignment_block.statuses[j].spanning_l << '\t' << alignment_block.statuses[j].spanning_r << '\t' << alignment_block.statuses[j].alignment_coords.first << '\t' << alignment_block.statuses[j].alignment_coords.second << '\n';
 					for(int j = 0; j < (int)consensus_seqs.size(); ++j){
-						int spanning_cov = 0, cov = 0, local_hp = -1, local_ps = -1;
-						bool conflict_hp = false, conflict_ps = false;
+						int spanning_cov = 0, cov = 0;
+                        std::vector<Haplotag> tags;
+
+						bool conflict_hp = false;
 						for(int k = 0; k < (int)spannable_indeces.size();++k) {
 							if(labels[spannable_indeces[k]] == j) {
 								++spanning_cov;
 							}
 						}
 						for(int k = 0; k < (int)labels.size(); ++k) {
-							if(labels[k] == j && alignment_block.hps[k].hp >= 0) {
-								if(local_hp >= 0 && alignment_block.hps[k].hp != local_hp) conflict_hp = true;
-								if(local_ps >= 0 && alignment_block.hps[k].ps != local_ps) conflict_ps = true;
-								local_hp = alignment_block.hps[k].hp;
-								local_ps = alignment_block.hps[k].ps;
+							if(labels[k] == j && alignment_block.hps[k].is_defined()) {
+                                
+                                for(int l = 0; l < (int) tags.size(); ++l)
+                                {
+                                    if(tags[l] == alignment_block.hps[k])
+                                        continue;
+
+                                    if(tags[l].ps == alignment_block.hps[k].ps) conflict_hp = true;  //existing phase set, so a conflict
+                                    else  tags.emplace_back(alignment_block.hps[k]); //additional phase set
+                                }
 							}
-						}
-						if(conflict_ps){
-							std_out_mtx.lock();
-							std::cerr << '(' << antimestamp() << "): WARNING: conflicting PS-tag for reads in " << local_bed.toBEDstring() << '\n';
-							std_out_mtx.unlock();
-							local_ps = -1;
 						}
 						if(conflict_hp){
 							std_out_mtx.lock();
 							std::cerr << '(' << antimestamp() << "): WARNING: conflicting HP-tag for reads in " << local_bed.toBEDstring() << '\n';
 							std_out_mtx.unlock();
-							local_hp = -1;
+                            tags.clear();
 						}
-						if(params.max_alleles == 1) local_hp = -1;
+                        if(tags.size() > 2)
+                        {
+   							std_out_mtx.lock();
+							std::cerr << '(' << antimestamp() << "): WARNING: more than two phase sets assigned to a cluster for " << local_bed.toBEDstring() << '\n';
+							std_out_mtx.unlock();
+                        }
+
+						if(params.max_alleles == 1) tags.clear();
 						for(const auto& l : labels) if(l == j) ++cov;
 						double se; 
 						if(spanning_cov == 1) se = -1;
@@ -131,7 +145,7 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 						if(params.is_sam) {
 							std::string assembly_name = region_str + "_" + std::to_string(j);
 							std_out_mtx.lock();
-							output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], read_group, cov, alignment_block.names.size(), -1, -1, initial_clusters, se, local_ps, local_hp);
+							output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], read_group, cov, alignment_block.names.size(), -1, -1, initial_clusters, se, tags);
 							std_out_mtx.unlock();
 						}
 						else{

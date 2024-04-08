@@ -1,5 +1,6 @@
 #include <string>
 #include "otter_opts.hpp"
+#include "parse_bam_alignments.hpp"
 
 void output_fa2sam(
 	const std::string& read,
@@ -14,6 +15,5 @@ void output_fa2sam(
 	const int& spanning_r,
 	const int& initial_clusters,
 	const double& se,
-	const int& ps,
-	const int& hp
+    std::vector<Haplotag>& tags
 	);
