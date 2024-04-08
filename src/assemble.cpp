@@ -141,7 +141,6 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 							std_out_mtx.unlock();
 						}
 					}
-					std_out_mtx.unlock();
 				}
 			}
 		}
