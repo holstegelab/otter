@@ -68,63 +68,81 @@ DecisionBound otter_find_clustering_dist(const int& width, const double& dinterv
 	std::vector<std::pair<int,double>> maximas;
 	std::vector<std::pair<int,double>> minimas;
 	kde.maximas(width, densities, maximas, minimas);
+	if(maximas.empty()){
+ 		std::cerr << "ERROR: failed to obtain maximas" << std::endl;
+		exit(1);
+ 	}
 	/**
 	for(const auto& m : maximas) std::cerr << '[' << (m.first*dinterval) << ',' << m.second << "] ";
 	std::cerr << std::endl;
 	for(const auto& m : minimas) std::cerr << '[' << (m.first*dinterval) << ',' << m.second << "] ";
 	std::cerr << std::endl;
 	*/
+	
 
 	
  	if(maximas.size() == 1) return DecisionBound(maximas[0].first*dinterval,maximas[0].first*dinterval,-1.0);
- 	else if(maximas.size() == 2) {
+ 	else {
  		if(minimas.empty()){
- 			std::cerr << "ERROR: failed to obtain minimas for : " << '\n';
+ 			std::cerr << "ERROR: failed to obtain minimas" << std::endl;
 		    exit(1);
  		}
- 		return DecisionBound(maximas[0].first*dinterval,maximas[1].first*dinterval,minimas[0].first*dinterval);
- 	}
-	else {
-		std::vector<int> sorted_maximas(maximas.size());
-		for(int i = 0; i < (int)sorted_maximas.size(); ++i) sorted_maximas[i] = i;
-		sort(sorted_maximas.begin(), sorted_maximas.end(), [&maximas](const auto& a, const auto& b){ 
-			double diff = maximas[a].second - maximas[b].second;
-			diff = diff > 0 ? diff : -diff;
-			if(diff <= 0.01) return maximas[a].first < maximas[b].first;
-			else return maximas[a].second > maximas[b].second;
-		});
-		
-		double last_i = 0;	
-		auto itr = sorted_maximas.begin() + 1;
-		while(itr < sorted_maximas.end()){
-			if(last_i == *itr) ++itr;
-			else{
-				if(maximas[sorted_maximas[last_i]].second - maximas[*itr].second  <= 0.01 && (maximas[sorted_maximas[*itr]].first*dinterval - maximas[last_i].first*dinterval) <= 0.01){
-					itr = sorted_maximas.erase(itr);
-					last_i = *itr;
+ 		if(maximas.size() == 2) return DecisionBound(maximas[0].first*dinterval,maximas[1].first*dinterval,minimas[0].first*dinterval);
+		else {
+			std::vector<int> sorted_maximas(maximas.size());
+			for(int i = 0; i < (int)sorted_maximas.size(); ++i) sorted_maximas[i] = i;
+			sort(sorted_maximas.begin(), sorted_maximas.end(), [&maximas](const auto& a, const auto& b){ 
+				double diff = maximas[a].second - maximas[b].second;
+				diff = diff > 0 ? diff : -diff;
+				if(diff <= 0.01) return maximas[a].first < maximas[b].first;
+				else return maximas[a].second > maximas[b].second;
+			});
+
+			//for(const auto& s : sorted_maximas) std::cerr << '[' << (maximas[s].first*dinterval) << ',' << maximas[s].second << "] ";
+			//std::cerr << "\n";
+			
+			int last_i = 0;
+			int acc_i = 1;
+			while(acc_i < (int)sorted_maximas.size()){
+				//std::cerr << "in\t" << maximas[sorted_maximas[acc_i]].first*dinterval << '\n';
+				int index_diff = acc_i > last_i ? acc_i - last_i : last_i - acc_i;
+				double f_diff = maximas[sorted_maximas[acc_i]].second - maximas[sorted_maximas[last_i]].second;
+				f_diff = f_diff < 0 ? -f_diff : f_diff;
+				//std::cerr << index_diff << '\t' << f_diff << '\n';
+				if(index_diff == 1 && f_diff <= 0.01){
+					//std::cerr << "deleting\t" << maximas[sorted_maximas[acc_i]].first*dinterval << '\n';
+					sorted_maximas.erase(sorted_maximas.begin()+acc_i);
+					last_i = acc_i;
 				}
-				++itr;
+				++acc_i;
+			}
+
+			if(sorted_maximas.size() < 2) return DecisionBound(maximas[0].first*dinterval,maximas[1].first*dinterval,minimas[0].first*dinterval);
+			else{
+				int m_first_i = sorted_maximas[0];
+				int m_second_i = sorted_maximas[1];
+				if(m_first_i > m_second_i){
+					int tmp = m_first_i;
+					m_first_i = m_second_i;
+					m_second_i = tmp;
+				}
+				int boundary_i = m_second_i - 1;
+				if(boundary_i < 0 || boundary_i >= (int)minimas.size()){
+					std::cerr << "ERROR: unexpected index for minimas: " << boundary_i << std::endl;
+		    		exit(1);
+				}
+				if(m_second_i - m_first_i > 1 && m_second_i - 2 >= 0 && (maximas[m_second_i].first*dinterval - minimas[boundary_i].first*dinterval <= 0.01)) {
+					boundary_i = m_second_i - 2;
+					if(boundary_i < 0 || boundary_i >= (int)minimas.size()){
+						std::cerr << "ERROR: unexpected index for minimas after correction: " << boundary_i << std::endl;
+		    			exit(1);
+					}
+				}
+
+				return DecisionBound(maximas[m_first_i].first*dinterval, maximas[m_second_i].first*dinterval, minimas[boundary_i].first*dinterval); 
 			}
 		}
-
-		if(sorted_maximas.size() < 2) return DecisionBound(maximas[0].first*dinterval,maximas[1].first*dinterval,minimas[0].first*dinterval);
-		else{
-			//for(const auto& s : sorted_maximas) std::cout << maximas[s].first*bandwidth << '\t' << maximas[s].second << '\n';
-		
-			//int m_first_i = 0, m_second_i = 0;
-			int m_first_i = sorted_maximas[0];
-			int m_second_i = sorted_maximas[1];
-			if(m_first_i > m_second_i){
-				int tmp = m_first_i;
-				m_first_i = m_second_i;
-				m_second_i = tmp;
-			}
-			int boundary_i = m_second_i - 1;
-			if(m_second_i - m_first_i > 1 && m_second_i - 2 >= 0 && (maximas[m_second_i].first*dinterval - minimas[boundary_i].first*dinterval <= 0.01)) boundary_i = m_second_i - 2;
-
-			return DecisionBound(maximas[m_first_i].first*dinterval, maximas[m_second_i].first*dinterval, minimas[boundary_i].first*dinterval); 
-		}
-	}
+ 	}
 }
 
 void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double& bandwidth, const double& max_tolerable_diff, const double& min_cov_fraction, const int& min_cov_fraction2_l, const double& min_cov_fraction2_f,const std::vector<int>& spannable_indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, AlignmentBlock& sequences, std::vector<int>& cluster_labels, int& initial_clusters)
