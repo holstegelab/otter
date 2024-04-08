@@ -75,6 +75,7 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 	for(const auto& m : minimas) std::cout << '[' << (m.first*bandwidth) << ',' << m.second << "] ";
 	std::cout << std::endl;
 	*/
+
 	
  	if(maximas.size() == 1) return DecisionBound(maximas[0].first*bandwidth,maximas[0].first*bandwidth,-1.0);
 	else {
@@ -83,7 +84,7 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 		sort(sorted_maximas.begin(), sorted_maximas.end(), [&maximas](const auto& a, const auto& b){ 
 			double diff = maximas[a].second - maximas[b].second;
 			diff = diff > 0 ? diff : -diff;
-			if(diff < 0.01) return maximas[a].first < maximas[b].first;
+			if(diff <= 0.01) return maximas[a].first < maximas[b].first;
 			else return maximas[a].second > maximas[b].second;
 		});
 		
@@ -93,7 +94,7 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 		while(itr < sorted_maximas.end()){
 			if(last_i == *itr) ++itr;
 			else{
-				if(maximas[sorted_maximas[last_i]].second - maximas[*itr].second  < 0.01){
+				if(maximas[sorted_maximas[last_i]].second - maximas[*itr].second  <= 0.01){
 					itr = sorted_maximas.erase(itr);
 					last_i = *itr;
 				}
@@ -111,8 +112,10 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 			m_first_i = m_second_i;
 			m_second_i = tmp;
 		}
+		int boundary_i = m_second_i - 1;
+		if(m_second_i - m_first_i > 1 && m_second_i - 2 >= 0 && (maximas[m_second_i].first*bandwidth - minimas[boundary_i].first*bandwidth <= 0.01)) boundary_i = m_second_i - 2;
 
-		return DecisionBound(maximas[m_first_i].first*bandwidth, maximas[m_second_i].first*bandwidth, minimas[m_second_i - 1].first*bandwidth); 
+		return DecisionBound(maximas[m_first_i].first*bandwidth, maximas[m_second_i].first*bandwidth, minimas[boundary_i].first*bandwidth); 
 	}
 }
 

@@ -24,17 +24,25 @@ double KDE::f(double x) const
 
 void KDE::maximas(const std::vector<double>& densities, std::vector<std::pair<int,double>>& maxs, std::vector<std::pair<int,double>>& mins) const
 {
-	//int width = 1;
+	int width = 3;
 	bool find_maxima = true;
 	double last_sum = 0.0;
 	int last_sum_i = 1;
 	for(int i = 1; i < (int)densities.size() - 1; ++i){
 		double sum = 0.0;
 		sum += densities[i];
-		sum += densities[i - 1];
-		sum += densities[i + 1];
-		//for(int j = 0; j < width; ++j) sum += densities[i - 1];//(width * j)];
-		//for(int j = 0; j < width; ++j) sum += densities[i + 1];//(width * j)];
+		//sum += densities[i - 1];
+		//sum += densities[i + 1];
+		//std::cout << "left\n";
+		for(int j = 1; j < width && (i - j) >= 0; ++j) {
+			//std::cout << i - j << '\n';
+			sum += densities[i - j];
+		}
+		//std::cout << "right\n";
+		for(int j = 1; j < width && (i + j) < (int)densities.size(); ++j) {
+			//std::cout << i + j << '\n';
+			sum += densities[i + j];//(width * j)];
+		}
 		if(find_maxima){
 			if(sum < last_sum) {
 				find_maxima = false;
