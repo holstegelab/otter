@@ -33,7 +33,7 @@ void command_assemble_parser(int argc, char** argv){
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
       ("F, cov-fraction", "Minimum coverage fraction per sequence.", cxxopts::value<double>()->default_value("0.2"))
       ("A, cov-fraction2", "Alternative minimum coverage fraction (INT,DOUBLE).", cxxopts::value<std::string>()->default_value("3000,0.1"))
-      ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.025"))
+      ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.01"))
       ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
       ("s, min-sim", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.9"))
