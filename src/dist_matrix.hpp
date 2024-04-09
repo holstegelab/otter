@@ -15,5 +15,6 @@ class DistMatrix{
 		double get_dist(uint32_t, uint32_t) const;
 		uint32_t get_min_dist_i(std::vector<uint32_t>&) const;
 		uint32_t size()const;
+		void print() const;
 };
 #endif

@@ -17,13 +17,13 @@ double otter_seq_dist(const bool& ignore_haps, wfa::WFAligner& aligner, std::str
 	if(!x_status.is_spanning() && !y_status.is_spanning()) return -1;
 	else{
 		
-        if(!ignore_haps && x_ht.is_defined() && y_ht.is_defined()){
+		if(!ignore_haps && x_ht.is_defined() && y_ht.is_defined()){
 			if(x_ht == y_ht) return 0;
-			else if(x_ht.ps == y_ht.ps)     return 1.0;
-            //otherwise: different PS haploblock, fallback to alignment based distance
+			else if(x_ht.ps == y_ht.ps) return 1.0;
+			//otherwise: different PS haploblock, fallback to alignment based distance
 		} 
 		
-        if(x == y) return 0.0;
+		if(x == y) return 0.0;
 		else{
 			bool x_smallest = x.size() < y.size();
 			double largest = x_smallest ? (double)y.size() : (double)x.size();
@@ -56,13 +56,13 @@ DecisionBound otter_find_clustering_dist(const double& bandwidth, const std::vec
 {
 	KDE kde(bandwidth);
 	for(const auto& v : distmatrix.values) if(v >= 0.0) kde.values.emplace_back(v);
- 	std::vector<double> densities;
+	std::vector<double> densities;
 	for(double x = 0.0; x <= 1.0; x += bandwidth) densities.emplace_back(kde.f(x));
 	//for(const auto& d : densities) std::cout << d << '\n';
 	std::vector<std::pair<int,double>> maximas;
 	std::vector<std::pair<int,double>> minimas;
 	kde.maximas(densities, maximas, minimas);
- 	if(maximas.size() == 1) return DecisionBound(maximas[0].first*0.01,maximas[0].first*0.01,-1.0);
+	if(maximas.size() == 1) return DecisionBound(maximas[0].first*0.01,maximas[0].first*0.01,-1.0);
 	else if(maximas.size() == 2) return DecisionBound(maximas[0].first*0.01, maximas[1].first*0.01, minimas[0].first*0.01); 
 	else {
 		int m_i = 1;
@@ -104,24 +104,24 @@ void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double&
 		else{
 			DecisionBound dists = otter_find_clustering_dist(bandwidth, spannable_indeces, sequences, aligner, distmatrix);
 			int* merge = new int[2*(spannable_indeces.size()-1)];
-		    double* height = new double[spannable_indeces.size()-1];
-		    auto distmatrix_cpy = distmatrix.values;
-		    hclust_fast(spannable_indeces.size(), distmatrix_cpy.data(), HCLUST_METHOD_AVERAGE, merge, height);
-		    if(dists.dist1 - dists.dist0 <= max_tolerable_diff) {
-		    	for(const auto& i : spannable_indeces) cluster_labels[i] = 0;
-		    	initial_clusters = 1;
-		    }
-		    else {
-		    	if(dists.cut0 < 0){
-		    		std::cerr << "ERROR: unexpected clustering boundary: " << dists.dist0 << ',' << dists.dist1 << ',' << dists.cut0 << '\n';
-		    		exit(1);
-		    	}
-		    	int* labels = new int[spannable_indeces.size()];
-		    	double dist_final = dists.dist1 == 0.01 ? dists.dist1 : dists.cut0 + 0.01;
-			    cutree_cdist(spannable_indeces.size(), merge, height, dist_final, labels);
-			    int total_alleles = 0;
-			    for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
-			    ++total_alleles;
+			double* height = new double[spannable_indeces.size()-1];
+			auto distmatrix_cpy = distmatrix.values;
+			hclust_fast(spannable_indeces.size(), distmatrix_cpy.data(), HCLUST_METHOD_AVERAGE, merge, height);
+			if(dists.dist1 - dists.dist0 <= max_tolerable_diff) {
+				for(const auto& i : spannable_indeces) cluster_labels[i] = 0;
+				initial_clusters = 1;
+			}
+			else {
+				if(dists.cut0 < 0){
+					std::cerr << "ERROR: unexpected clustering boundary: " << dists.dist0 << ',' << dists.dist1 << ',' << dists.cut0 << '\n';
+					exit(1);
+				}
+				int* labels = new int[spannable_indeces.size()];
+				double dist_final = dists.dist1 == 0.01 ? dists.dist1 : dists.cut0 + 0.01;
+				cutree_cdist(spannable_indeces.size(), merge, height, dist_final, labels);
+				int total_alleles = 0;
+				for(int i = 0; i < (int)spannable_indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
+				++total_alleles;
 				initial_clusters = total_alleles;
 				int min_cov1 = int(spannable_indeces.size()*min_cov_fraction + 0.5);
 				int min_cov2 = int(spannable_indeces.size()*min_cov_fraction2_f + 0.5);
@@ -214,14 +214,14 @@ void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double&
 						}
 					}
 				}
-			    for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
-			    	cluster_labels[spannable_indeces[i]] = labels[i];
-			    }
-			    delete[] labels;
-		    }
+				for(int i = 0; i < (int)spannable_indeces.size(); ++i) {
+					cluster_labels[spannable_indeces[i]] = labels[i];
+				}
+				delete[] labels;
+			}
 
-		    delete[] merge;
-		    delete[] height;
+			delete[] merge;
+			delete[] height;
 		}
 	}
 }
@@ -320,7 +320,7 @@ void otter_nonspanning_assigment(const double& ignore_haps, const double& min_si
 				for(int j = 0; j < (int)max_sim.size(); ++j) {
 					if(max_sim_label != j) {
 						double diff = max_sim[max_sim_label] - max_sim[j];
-						if(diff < min_diff) min_diff =  diff;
+						if(diff < min_diff) min_diff =	diff;
 					}
 				}
 				if(min_diff >= max_error) labels[i] = max_sim_label;

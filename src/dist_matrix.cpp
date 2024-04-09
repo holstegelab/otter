@@ -2,6 +2,7 @@
 #include <vector>
 #include <exception>
 #include <iostream>
+#include <iomanip>
 #include <cstddef>
 #include <cmath>
 
@@ -45,3 +46,14 @@ uint32_t DistMatrix::get_min_dist_i(std::vector<uint32_t>& indeces) const
 }
 
 uint32_t DistMatrix::size()const{return values.size();}
+
+void DistMatrix::print() const
+{
+	for(uint32_t i = 0; i < n; i++){
+		for(uint32_t j = 0; j < n; j++){
+			if(i == j) std::cerr << "0 ";
+			else std::cerr << std::fixed << std::setprecision(3) << get_dist(i,j) << " ";
+		}
+		std::cerr << std::endl;
+	}
+}	

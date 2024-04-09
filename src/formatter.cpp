@@ -22,17 +22,14 @@ void output_fa2sam(const std::string& read, const std::string& chr, const int& s
 	}
 	if(initial_clusters > -1) std::cout << "\tic:i:" << initial_clusters;
 	std::cout << "\tse:f:" << se;
-    if(hps.size() > 0 && hps[0].is_defined())
-    {
-        std::cout << "\tPS:i:" << hps[0].ps;
-        std::cout << "\tHP:i:" << hps[0].hp;
-    }
-    //in some situations, an assembled read connects two phase sets
-    if(hps.size() > 1 && hps[1].is_defined())
-    {
-        std::cout << "\txs:i:" << hps[1].ps;
-        std::cout << "\txp:i:" << hps[1].hp;
-    }
-   
+	if(hps.size() > 0 && hps[0].is_defined())
+	{
+		std::cout << "\tPS:A:" << hps[0].ps;
+		for(int i = 1; i < (int) hps.size(); ++i)
+			if(hps[i].is_defined())	std::cout << ',' << hps[i].ps;
+		std::cout << "\tHP:A:" << hps[0].hp;
+		for(int i = 1; i < (int) hps.size(); ++i)
+			if(hps[i].is_defined())	std::cout << ',' << hps[i].hp;
+	}
 	std::cout << '\n';
 }
