@@ -34,6 +34,8 @@ void parse_bam_allele(
 	const std::map<std::string,int>&, 
 	bam1_t*&, 
 	std::vector<std::string>&, 
+	std::vector<int>&,
+	std::vector<int>&,
 	std::vector<int>&
 );
 
@@ -43,7 +45,9 @@ bool is_multi_sample(
 
 void sort_bam_alleles(
 	std::vector<int>&, 
-	std::vector<std::string>&
+	std::vector<std::string>&,
+	std::vector<int>&, 
+	std::vector<int>& 
 );
 
 void set_sample_intervals(

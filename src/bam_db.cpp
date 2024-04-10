@@ -49,7 +49,7 @@ void fetch_preset_offset(const std::string& bam, int& otter_offset)
 
 void output_preset_offset_tag(const int& offset){std::cout << "@PG\tID:OTTER_" << offset << '\n';}
 
-void parse_bam_allele(const std::string& target_region, const int& ac_mincov, const int& tc_mincov, const std::map<std::string,int>& sample2index, bam1_t*& read, std::vector<std::string>& alleles, std::vector<int>& sample_indeces)
+void parse_bam_allele(const std::string& target_region, const int& ac_mincov, const int& tc_mincov, const std::map<std::string,int>& sample2index, bam1_t*& read, std::vector<std::string>& alleles, std::vector<int>& sample_indeces, std::vector<int>& allele_depth, std::vector<int>& total_depth)
 {
 	std::string region;
 	auto aux_ptr = bam_aux_get(read, ta_tag.c_str());
@@ -74,6 +74,8 @@ void parse_bam_allele(const std::string& target_region, const int& ac_mincov, co
 		    for(int i = 0; i  < read->core.l_qseq; i++) seq[i] = seq_nt16_str[bam_seqi(q, i)];
 		    sample_indeces.emplace_back(it->second);
 		    alleles.emplace_back(seq);
+		    allele_depth.emplace_back(ac);
+		    total_depth.emplace_back(tc);
 		}
 	}
 }
@@ -84,7 +86,7 @@ bool is_multi_sample(const std::vector<int>& allele_indeces)
 	return false;
 }
 
-void update_indeces_alleles(const std::vector<int>& init_indeces, const std::vector<int>& sample_indeces, const std::vector<std::string>& alleles, std::vector<int>& _sample_indeces, std::vector<std::string>& _alleles, int& last, int& current)
+void update_indeces_alleles(const std::vector<int>& init_indeces, const std::vector<int>& sample_indeces, const std::vector<std::string>& alleles, std::vector<int>& allele_depth, std::vector<int>& total_depth, std::vector<int>& _sample_indeces, std::vector<std::string>& _alleles, std::vector<int>& _allele_depth, std::vector<int>& _total_depth, int& last, int& current)
 {
 	if(current - last > 2){
 		std::cerr << "(" << antimestamp() << "): ERROR more than two alleles found " << std::endl;
@@ -93,9 +95,16 @@ void update_indeces_alleles(const std::vector<int>& init_indeces, const std::vec
 	else {
 		if(current - last == 1){
 			int total_alleles = 0;
+			//homozygous, need to split the allele depth
+		    int ad2 = (allele_depth[init_indeces[last]] / 2);
+		    int ad1 = allele_depth[init_indeces[last]] - ad2;
+			_allele_depth.emplace_back(ad1);
+			_allele_depth.emplace_back(ad2);
+
 			while(total_alleles++ < 2){
 				_sample_indeces.emplace_back(sample_indeces[init_indeces[last]]);
 				_alleles.emplace_back(alleles[init_indeces[last]]);
+				_total_depth.emplace_back(total_depth[init_indeces[last]]);
 
 			}
 		}
@@ -103,13 +112,15 @@ void update_indeces_alleles(const std::vector<int>& init_indeces, const std::vec
 			for(int i = last; i < current; ++i){
 				_sample_indeces.emplace_back(sample_indeces[init_indeces[i]]);
 				_alleles.emplace_back(alleles[init_indeces[i]]);
+				_allele_depth.emplace_back(allele_depth[init_indeces[i]]);
+				_total_depth.emplace_back(total_depth[init_indeces[i]]);
 			}
 		}
 		last = current;
 	}
 }
-
-void sort_bam_alleles(std::vector<int>& sample_indeces, std::vector<std::string>& alleles)
+/* Sort alleles by sample indeces */
+void sort_bam_alleles(std::vector<int>& sample_indeces, std::vector<std::string>& alleles, std::vector<int>& allele_depth, std::vector<int>& total_depth)
 {
 
 	std::vector<int> init_indeces(sample_indeces.size());
@@ -121,16 +132,24 @@ void sort_bam_alleles(std::vector<int>& sample_indeces, std::vector<std::string>
 	
 	std::vector<int> _sample_indeces;
 	std::vector<std::string> _alleles;
+	std::vector<int> _allele_depth;
+	std::vector<int> _total_depth;
+
 	int last = 0;
 	int current = 1;
 	for(; current < (int)init_indeces.size(); ++current){
-		if(sample_indeces[init_indeces[current]] != sample_indeces[init_indeces[last]]) update_indeces_alleles(init_indeces, sample_indeces, alleles, _sample_indeces, _alleles, last, current);
+		if(sample_indeces[init_indeces[current]] != sample_indeces[init_indeces[last]]) update_indeces_alleles(init_indeces, sample_indeces, alleles, allele_depth, total_depth,
+																														   _sample_indeces, _alleles, _allele_depth, _total_depth, last, current);
 	}
 
-	update_indeces_alleles(init_indeces, sample_indeces, alleles, _sample_indeces, _alleles, last, current);
+	update_indeces_alleles(init_indeces, sample_indeces, alleles, allele_depth, total_depth, 
+										_sample_indeces, _alleles, _allele_depth, _total_depth, last, current);
 
 	sample_indeces = _sample_indeces;
 	alleles = _alleles;
+	allele_depth = _allele_depth;
+	total_depth = _total_depth;
+
 }
 
 void set_sample_intervals(const std::vector<int>& sample_indeces, std::vector<std::pair<int, std::pair<int, int>>>& sample2interval)

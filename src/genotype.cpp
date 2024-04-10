@@ -6,11 +6,12 @@
 #include "pairwise_alignment.hpp"
 #include "bindings/cpp/WFAligner.hpp"
 #include "fastcluster.h"
+#include <chrono>
 #include <iostream>
 #include <vector>
 
 
-void append_ref_sample(const BED& region, const int& offset, const int& ref_allele_i, std::mutex& stdout_mtx, FaidxInstance& faidx_inst, std::vector<std::string>& alleles, std::vector<int>& sample_indeces)
+void append_ref_sample(const BED& region, const int& offset, const int& ref_allele_i, std::mutex& stdout_mtx, FaidxInstance& faidx_inst, std::vector<std::string>& alleles, std::vector<int>& sample_indeces, std::vector<int>& allele_depth, std::vector<int>& total_depth)
 {
 	std::string ref_allele;
 	faidx_inst.fetch(region.chr, region.start - offset, region.end + offset - 1, ref_allele);
@@ -21,6 +22,8 @@ void append_ref_sample(const BED& region, const int& offset, const int& ref_alle
 	}
 	else{
 		alleles.emplace_back(ref_allele);
+		allele_depth.emplace_back(1);
+		total_depth.emplace_back(1);
 		sample_indeces.emplace_back(ref_allele_i);
 	}
 }
@@ -164,14 +167,22 @@ void output_vcf_header(const std::string& bam, const std::vector<std::string>& s
 	bam_inst.destroy();
 	std::cout << 
 	"##INFO=<ID=GTS,Number=1,Type=String,Description=\"Multi-Allelic Scaled Genotype Array\">\n" <<
+	"##INFO=<ID=AL,Number=1,Type=String,Description=\"Allele length\">\n" <<
+	"##INFO=<ID=AC,Number=1,Type=String,Description=\"Allele count\">\n" <<
+	"##INFO=<ID=AN,Number=1,Type=String,Description=\"Allele number\">\n" <<
 	"##ALT=<ID=DEL,Description=\"Deletion\">\n" <<
-	"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+	"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n" << 
+	"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read depth\">\n" <<
+	"##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read depth for each allele\">\n";
 	std::cout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	for(const auto& sample : sample_index) if(sample != ref_name) std::cout << '\t' << sample;
 	std::cout << '\n';
 }
 
-void output_vcf(const BED& region, const int& offset, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, const std::vector<std::pair<int, std::pair<int,int>>>& sample2intervals, const std::vector<int>& labels, const std::vector<double>& scaled_labels, const std::vector<std::string>& alleles, const std::vector<int>& reps, const int& ref_allele_i)
+void output_vcf(const BED& region, const int& offset, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, 
+							const std::vector<std::pair<int, std::pair<int,int>>>& sample2intervals, const std::vector<int>& labels, const std::vector<double>& scaled_labels, 
+							const std::vector<std::string>& alleles, const std::vector<int>& reps, const int& ref_allele_i, const std::vector<int>& allele_depth, const std::vector<int>& total_depth,
+							const std::vector<int>& counts, const std::vector<double>& avg_sizes)
 {
 	std::vector<int> index2sampleintervals(index2sample.size(), -1);
 	int ref_sample_i = -1;
@@ -198,23 +209,50 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 			}
 		}
 	}
+	//scaled genotype labels
 	std::cout << "\t.\t.\tGTS=";
 	for(int i = 0; i < (int)reps.size(); ++i){
 		if(i > 0) std::cout << ',';
 		std::cout << scaled_labels[i];
 	}
-	std::cout << "\tGT\t";
+
+	//allele length
+	std::cout << ";AL="; //allele length
+	for(int i = 0; i < (int)reps.size(); ++i){
+		if(i > 0) std::cout << ',';
+		if(alleles[reps[i]] == "N") std::cout << 0;
+		else std::cout << avg_sizes[labels[reps[i]]];
+	}
+
+	//allele count
+	std::cout << ";AC="; //allele count
+	for(int i = 0; i < (int)reps.size(); ++i){
+		if(i > 0) std::cout << ',';
+		std::cout << counts[labels[reps[i]]];
+	}
+
+	//allele number
+	int an = 0;
+	for(int i = 0; i < (int) index2sampleintervals.size(); ++i) if(index2sampleintervals[i] >= 0) an+=2;
+	std::cout << ";AN=" << an;
+
+	std::cout << "\tGT:DP:AD\t";
 	int samples_processed = 0;
 	for(int i = 0; i < (int)index2sample.size(); ++i){
 		if(i != ref_sample_i){
 			const auto& interval_i = index2sampleintervals[i];
 			if(samples_processed > 0) std::cout << '\t';
-			if(interval_i < 0) std::cout << "./.";
+			if(interval_i < 0) std::cout << "./.:.:.";
 			else {
 				const auto& interval = sample2intervals[interval_i];
 				const int& a1 = labels[interval.second.first];
 				const int& a2 = labels[interval.second.second];
-				std::cout << (a1 < a2 ? a1 : a2) << '/' << (a1 > a2 ? a1 : a2);
+				const int& d1 = total_depth[interval.second.first];
+				const int& r1 = allele_depth[interval.second.first];
+				const int& r2 = allele_depth[interval.second.second];
+				
+				std::cout << (a1 <= a2 ? a1 : a2) << '/' << (a1 <= a2 ? a2 : a1);
+				std::cout << ':' << d1 << ':' << (a1 <= a2 ? r1 : r2) << ',' << (a1 <= a2 ? r2 : r1);
 			}
 			++samples_processed;
 		}
@@ -247,16 +285,36 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 			if(ref_is_fa) faidx_inst.init(reference);
 			for(int region_i = a; region_i < b; ++region_i) {
 				const BED& region = regions[region_i];
+
+				//query the bam for the bed region
 				const std::string region_str = region.chr + ':' + std::to_string(region.start) + '-' + std::to_string(region.end);
+				if((region_i % 100) == 0)	{
+				    stdout_mtx.lock();
+					std::cerr << "(" << antimestamp() << "): Genotyping " << region_str << '\n';
+					stdout_mtx.unlock();
+				}
+
+				//record start time (now)
+				auto start = std::chrono::high_resolution_clock::now();
+
 				hts_itr_t *iter = sam_itr_querys(bam_inst.idx, bam_inst.header, region_str.c_str());
+
 				if(iter == nullptr) std::cerr << "(" << antimestamp() << "): WARNING: query failed at region " << region_str << std::endl;
 				else{
 					std::vector<int> allele_sample_indeces;
 					std::vector<std::string> alleles;
-					while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces);
+					std::vector<int> allele_depth;
+					std::vector<int> total_depth;
+
+					//parse all bam records for this region
+					while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces, allele_depth, total_depth);
+
+
+					
 					if(alleles.size() > 1){
-						if(ref_is_fa) append_ref_sample(region, params.offset, ref_allele_i, stdout_mtx, faidx_inst, alleles, allele_sample_indeces);
-						sort_bam_alleles(allele_sample_indeces, alleles);
+						if(ref_is_fa) append_ref_sample(region, params.offset, ref_allele_i, stdout_mtx, faidx_inst, alleles, allele_sample_indeces, allele_depth, total_depth);
+						
+						sort_bam_alleles(allele_sample_indeces, alleles, allele_depth, total_depth);
 						std::vector<std::pair<int, std::pair<int,int>>> sample2intervals;
 						set_sample_intervals(allele_sample_indeces, sample2intervals);
 						if(is_length){
@@ -318,7 +376,9 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 				    				}
 				    				if(ref_allele_i >= 0){
 				    					stdout_mtx.lock();
-				    					output_vcf(region, params.offset, index2sample, sample2index, sample2intervals, labels, scaled_labels, alleles, reps, local_ref_allele_i);
+				    					output_vcf(region, params.offset, index2sample, sample2index, sample2intervals, labels, 
+				    																scaled_labels, alleles, reps, local_ref_allele_i, 
+				    																allele_depth, total_depth, label_counts, avg_sizes);
 				    					stdout_mtx.unlock();
 				    				}
 				    				else{
@@ -337,6 +397,15 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 							}
 						}
 					}
+				}
+				
+				//ch
+				auto stop = std::chrono::high_resolution_clock::now();
+				auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+				if(duration.count() > 10000) {
+					stdout_mtx.lock();
+					std::cerr << "(" << antimestamp() <<  "): Genotyping " << region_str << " took " << (duration.count() / 1000) << "s\n";
+					stdout_mtx.unlock();
 				}
 			}
 			faidx_inst.destroy();

@@ -31,7 +31,9 @@ void length(const std::string& bam, const std::string& bed, const int& ac_mincov
 		else{
 			std::vector<int> allele_sample_indeces;
 			std::vector<std::string> alleles;
-			while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces);
+			std::vector<int> allele_depth;
+			std::vector<int> total_depth;
+			while(sam_itr_next(bam_inst.fp, iter, bam_inst.read) > 0) parse_bam_allele(region_str, ac_mincov, tc_mincov, sample2index, bam_inst.read, alleles, allele_sample_indeces, allele_depth, total_depth);
 			for(int i = 0; i < (int)allele_sample_indeces.size(); ++i) std::cout << region_str << '\t' << sample_index[allele_sample_indeces[i]] << '\t' << alleles[i].size() << '\n';
 		}
 	}
