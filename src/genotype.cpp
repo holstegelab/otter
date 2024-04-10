@@ -166,14 +166,15 @@ void output_vcf_header(const std::string& bam, const std::vector<std::string>& s
 	for(int i = 0; i < bam_inst.header->n_targets; ++i) std::cout << "##contig=<ID=" << bam_inst.header->target_name[i] << ",length=" << bam_inst.header->target_len[i] << ">\n";
 	bam_inst.destroy();
 	std::cout << 
-	"##INFO=<ID=GTS,Number=1,Type=String,Description=\"Multi-Allelic Scaled Genotype Array\">\n" <<
-	"##INFO=<ID=AL,Number=1,Type=String,Description=\"Allele length\">\n" <<
-	"##INFO=<ID=AC,Number=1,Type=String,Description=\"Allele count\">\n" <<
-	"##INFO=<ID=AN,Number=1,Type=String,Description=\"Allele number\">\n" <<
+	"##INFO=<ID=GTS,Number=R,Type=Float,Description=\"Multi-Allelic Scaled Genotype Array\">\n" <<
+	"##INFO=<ID=AL,Number=R,Type=Float,Description=\"Average allele length\">\n" <<
+	"##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Allele count\">\n" <<
+	"##INFO=<ID=RC,Number=1,Type=Integer,Description=\"Reference count\">\n" <<
+	"##INFO=<ID=AN,Number=1,Type=Integer,Description=\"Allele number\">\n" <<
 	"##ALT=<ID=DEL,Description=\"Deletion\">\n" <<
 	"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n" << 
 	"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read depth\">\n" <<
-	"##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read depth for each allele\">\n";
+	"##FORMAT=<ID=AD,Number=2,Type=Integer,Description=\"Read depth for each called allele\">\n";
 	std::cout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	for(const auto& sample : sample_index) if(sample != ref_name) std::cout << '\t' << sample;
 	std::cout << '\n';
@@ -210,6 +211,7 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 		}
 	}
 	//scaled genotype labels
+	
 	std::cout << "\t.\t.\tGTS=";
 	for(int i = 0; i < (int)reps.size(); ++i){
 		if(i > 0) std::cout << ',';
@@ -225,15 +227,22 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 	}
 
 	//allele count
-	std::cout << ";AC="; //allele count
-	for(int i = 0; i < (int)reps.size(); ++i){
-		if(i > 0) std::cout << ',';
-		std::cout << counts[labels[reps[i]]];
+ 	if(reps.size() > 1)	
+ 	{
+		std::cout << ";AC="; //allele count (only for the alternate allele, per specification)
+		for(int i = 1; i < (int)reps.size(); ++i){
+			if(i > 1) std::cout << ',';
+			std::cout << counts[labels[reps[i]]];
+		}
 	}
+	//reference count
+	std::cout << ";RC="; //reference count
+	std::cout << counts[labels[reps[0]]];
 
 	//allele number
 	int an = 0;
 	for(int i = 0; i < (int) index2sampleintervals.size(); ++i) if(index2sampleintervals[i] >= 0) an+=2;
+	an -= 2; //correct for ref 'sample'
 	std::cout << ";AN=" << an;
 
 	std::cout << "\tGT:DP:AD\t";
@@ -399,7 +408,6 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 					}
 				}
 				
-				//ch
 				auto stop = std::chrono::high_resolution_clock::now();
 				auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 				if(duration.count() > 10000) {

@@ -53,7 +53,7 @@ void OtterOpts::init_min_cov_fraction(double _min_cov_fraction)
 
 void OtterOpts::init_threads(int _threads)
 {
-	if(_threads > 0 && _threads <= 32) threads = _threads;
+	if(_threads > 0 && _threads <= 64) threads = _threads;
 	else{
 		std::cerr << '(' << antimestamp() << "): Invalid threads value: " << _threads <<  std::endl;
 		exit(0);
