@@ -237,7 +237,7 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 	}
 	//reference count
 	std::cout << ";RC="; //reference count
-	std::cout << counts[labels[reps[0]]];
+	std::cout << (counts[labels[reps[0]]] - 2);
 
 	//allele number
 	int an = 0;

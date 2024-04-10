@@ -7,7 +7,7 @@ LDFLAGS=$(CFLAGS)
 CXX=g++
 CXX_FLAGS=-std=c++17 -Wall -O2 -g
 
-ODIR = build
+ODIR = build3
 SDIR = src
 
 OUT = otter
