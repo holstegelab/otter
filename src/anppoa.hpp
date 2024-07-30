@@ -114,7 +114,7 @@ inline void PPOA::insert_alignment(std::string& sequence, std::string& cigar, bo
 
 	if(!is_spanning_l){
 		is_first_node = false;
-		while (cigar_i < cigar.size()){
+		while (cigar_i < (int)cigar.size()){
 			const auto& c = cigar[cigar_i];
 			if(c != 'D' && c != 'I') break;
 			if(c == 'D') {
@@ -128,7 +128,7 @@ inline void PPOA::insert_alignment(std::string& sequence, std::string& cigar, bo
 		//std::cout << previous_node << ' ' << ref_i << ' ' << target_i << ' ' << cigar_i << '\n';
 	}
 
-	while(cigar_i < cigar.size()){//for(const auto& c : cigar){
+	while(cigar_i < (int)cigar.size()){//for(const auto& c : cigar){
 		//std::cout << previous_node << ' ' << ref_i << ' ' << target_i << ' ' << cigar_i << '\n';
 		const auto& c = cigar[cigar_i];
 		//path traversal remains in the backbone

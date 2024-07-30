@@ -24,7 +24,6 @@ void command_genotype_parser(int argc, char** argv){
       .add_options("OPTIONAL")
       ("e, max-error", "Maximimum sequence dissimilarity.", cxxopts::value<double>()->default_value("0.025"))
       ("s, max-cosdis", "Maximum cosine dissimilarity.", cxxopts::value<double>()->default_value("0.025"))
-      ("l, length", "Output multi-column TSV representing join, min, and max sequence lengths as genotypes", cxxopts::value<bool>()->default_value("false"))
       ("t, threads", "Total threads to use.", cxxopts::value<int>()->default_value("1"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
@@ -38,14 +37,13 @@ void command_genotype_parser(int argc, char** argv){
       params.init_max_error(result["max-error"].as<double>());
       params.init_max_cosdis(result["max-cosdis"].as<double>());
       params.init_threads(result["threads"].as<int>());
-      const bool is_length = result["length"].as<bool>();
       const std::string reference = result["reference"].as<std::string>();
       genotype(params, inputs.front(), bed, reference);
     }
   }
 
   //unable to make sense of CLI
-  catch (const cxxopts::exceptions::exception e) {
+  catch (const cxxopts::exceptions::exception& e) {
     std::cout << "Error parsing options: " << e.what() << '\n' << options.help() << std::endl;
     exit(1);
   }

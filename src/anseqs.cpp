@@ -18,6 +18,14 @@ const std::string se_tag = "se";
 const std::string sp_tag = "sp";
 const std::string ic_tag = "ic";
 
+char _get_spanning_tag_value(const bool& is_spanning_l, const bool& is_spanning_r)
+{
+	if(is_spanning_l && is_spanning_r) return('b');
+	else if(is_spanning_l) return('l');
+	else if(is_spanning_r) return('r');
+	else return('n');
+}
+
 /************************
  *** ANSEQ defintions ***
  ************************/
@@ -30,19 +38,14 @@ ANSEQ::ANSEQ(const std::string& _s): seq(_s){};
 ANALLELE::ANALLELE(){};
 ANALLELE::ANALLELE(const std::string& _seq): ANSEQ(_seq), scov(1), acov(1), tcov(1), se(0), ic(1), hpt(-1,-1){};
 ANALLELE::ANALLELE(const std::string& _seq, int s, int a, int t, float _se, int i, int h, int p): ANSEQ(_seq), scov(s), acov(a), tcov(t), se(_se), ic(i), hpt(h,p){};
+
 void ANALLELE::stdout_sam(const std::string& name, const std::string& chr, const int& start, const int& end, const std::string& rg, const bool& is_read, const bool& is_spanning_l, const bool& is_spanning_r) const
 {
 	std::string pseudo_qual(seq.size(), '!');
 	std::cout << name << "\t0\t" << chr << '\t' << start << "\t0\t" << seq.size() << "M\t*\t0\t0\t" << seq << '\t' << pseudo_qual;
 	if(!rg.empty()) std::cout << '\t' << rg_tag << ":Z:" << rg;
 	std::cout  << '\t' << ta_tag << ":Z:" << chr << ':' << start << '-' << end << '\t' << tc_tag << ":i:" << tcov << '\t' << ac_tag << ":i:" << acov << '\t' << sc_tag << ":i:" << scov;
-	if(is_read){
-		std::cout << '\t' << sp_tag << ":A:";
-		if(is_spanning_l && is_spanning_r) std::cout << 'b';
-		else if(is_spanning_l) std::cout << 'l';
-		else if(is_spanning_r) std::cout << 'r';
-		else std::cout << 'n';
-	}
+	if(is_read) std::cout << '\t' << sp_tag << ":A:" << _get_spanning_tag_value(is_spanning_l, is_spanning_r);
 	std::cout << '\t' << ic_tag << ":i:" << ic;
 	std::cout << '\t' << se_tag << ":f:" << se;
 	if(hpt.ps >= 0) std::cout << '\t' << ps_tag << ":i:" << hpt.ps;
@@ -53,14 +56,9 @@ void ANALLELE::stdout_sam(const std::string& name, const std::string& chr, const
 void ANALLELE::stdout_fa(const std::string& name, const std::string& region, const bool& is_read, const bool& is_spanning_l, const bool& is_spanning_r) const
 {
 	std::cout << '>' << name << '#' << region << '#' << tc_tag << ":i:" << tcov << '#' << ac_tag << ":i:" << acov << '#' << sc_tag << ":i:" << scov;
-	if(is_read){
-		int sp = 0;
-		if(is_spanning_l && is_spanning_r) sp = 0;
-		else if(is_spanning_l) sp = 1;
-		else if(is_spanning_l) sp = 2;
-		else sp = 3;
-		std::cout << "#sp:" << sp; 
-	}
+	if(is_read) std::cout << '#' << sp_tag << ":A:" << _get_spanning_tag_value(is_spanning_l, is_spanning_r);
+	if(hpt.ps >= 0) std::cout << '#' << ps_tag << ":i:" << hpt.ps;
+	if(hpt.hp >= 0) std::cout << '#' << hp_tag << ":i:" << hpt.hp;
 	std::cout << '\n' << seq << '\n';
 }
 
@@ -101,12 +99,9 @@ void ANREAD::stdout_sam(const std::string& chr, const int& start, const int& end
 void ANREAD::stdout_fa(const std::string& region) const
 {
 	std::cout << '>' << name << '#' << region;
-	int sp = 0;
-	if(is_spanning_l && is_spanning_r) sp = 0;
-	else if(is_spanning_l) sp = 1;
-	else if(is_spanning_l) sp = 2;
-	else sp = 3;
-	std::cout << "#sp:" << sp; 
+	std::cout << '#' << sp_tag << ":A:" << _get_spanning_tag_value(is_spanning_l, is_spanning_r);
+	if(hpt.ps >= 0) std::cout << '#' << ps_tag << ":i:" << hpt.ps;
+	if(hpt.hp >= 0) std::cout << '#' << hp_tag << ":i:" << hpt.hp;
 	std::cout << '\n' << seq << '\n';
 }
 

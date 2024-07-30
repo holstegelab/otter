@@ -49,7 +49,6 @@ class ANALLELE : public ANSEQ{
 		ANALLELE();
 		ANALLELE(const std::string&);
 		ANALLELE(const std::string&, int, int, int, float, int, int, int);
-
 		void stdout_sam(const std::string&, const std::string&, const int&, const int&, const std::string&, const bool& is_read = false, const bool& is_spanning_l = false, const bool& is_spanning_r = false) const;
 		void stdout_fa(const std::string&, const std::string&, const bool& is_read = false, const bool& is_spanning_l = false, const bool& is_spanning_r = false) const;
 };
@@ -70,7 +69,6 @@ class ANREAD : public ANSEQ{
 		ANREAD(const std::string&, const std::string&, double, bool, bool, int, int);
 		bool is_spanning() const;
 		void set_is_spanning();
-
 		void stdout_sam(const std::string&, const int&, const int&, const std::string&) const;
 		void stdout_fa(const std::string&) const;
 

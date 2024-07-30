@@ -86,7 +86,7 @@ void command_assemble_parser(int argc, char** argv){
   }
 
   //unable to make sense of CLI
-  catch (const cxxopts::exceptions::exception e) {
+  catch (const cxxopts::exceptions::exception& e) {
     std::cout << "Error parsing options: " << e.what() << '\n' << options.help() << std::endl;
     exit(1);
   }

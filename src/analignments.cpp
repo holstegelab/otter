@@ -253,9 +253,11 @@ void rapid_consensus(const bool& ignore_haps, std::vector<ANREAD>& reads, std::v
 			exit(1);
 		}
 
+		auto& rep_read = reads[rep];
+		if(!ignore_haps) local_allele.hpt = rep_read.hpt;
+
 		if(label_indeces_all_reads.size() + 1 <= 2) local_allele.seq = reads[label_indeces_valid_reads.front()].seq;
 		else{
-			auto& rep_read = reads[rep];
 			PPOA poa;
 			poa.init(rep_read.seq);
 			for(const auto& i : label_indeces_all_reads){
