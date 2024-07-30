@@ -1,12 +1,9 @@
-#include <string>
 #include "otter_opts.hpp"
+#include <string>
 
 void genotype(
+	OtterOpts&,
 	const std::string&,
 	const std::string&,
-	const OtterOpts&,
-	const int&,
-	const int&,
-	const bool&,
-	const bool&
+	const std::string&
 );

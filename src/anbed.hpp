@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <optional>
 
 class BED {
   public:
@@ -15,15 +16,13 @@ class BED {
     uint32_t start;
     uint32_t end;
     BED();
-    BED(std::string, uint32_t, uint32_t);
-    BED(const std::string&);
-    void parse_multibed(const std::string&);
+    BED(std::string, int, int);
     std::string toString() const;
-    std::string toBEDstring() const;
+    std::string toScString() const;
 };
 
-//type alias for map -> (chrm index, vector of Region objects)
-typedef std::map<std::string, std::vector<BED>> BedMap;
+std::optional<BED> parse_bed(const std::string&);
+std::optional<BED> parse_sc_bed(const std::string&);
 
 void parse_bed_file(
   const std::string, 

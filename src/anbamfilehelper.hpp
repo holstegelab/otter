@@ -1,12 +1,11 @@
 #ifndef ANBAMFILEHELPER_HPP
 #define ANBAMFILEHELPER_HPP
 
-#include "BS_thread_pool.hpp"
+#include "sam.h"
 #include <vector>
 #include <string>
 #include <map>
 #include <memory>
-#include <htslib/sam.h>
 
 const char init_header[] = "@HD\tVN:1.4\tSO:unknown\n";
 const uint8_t base_qual = (uint8_t)0;
@@ -23,7 +22,7 @@ const uint8_t base_qual = (uint8_t)0;
  */
 class BamInstance {
 	public:
-		samFile *fp;
+		BGZF *fp;
 		bam_hdr_t *header;
 		bool index;
 		hts_idx_t *idx;
@@ -33,20 +32,6 @@ class BamInstance {
 		void init(const std::string&,bool);
 		void destroy();
 };
-
-void allocate_bam_threads(
-	const int, 
-	const std::string&, 
-	BS::thread_pool&,
-	std::map<std::thread::id, int>&,
-	std::vector<BamInstance>&
-);
-
-void destroy_bam_threads(
-	std::map<std::thread::id, int>&,
-	std::vector<BamInstance>&
-);
-
 
 
 #endif

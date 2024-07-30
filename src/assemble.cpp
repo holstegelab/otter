@@ -1,15 +1,15 @@
+#include "bindings/cpp/WFAligner.hpp"
 #include "assemble.hpp"
 #include "antimestamp.hpp"
-#include "anbamfilehelper.hpp"
-#include "parse_bam_alignments.hpp"
 #include "anbed.hpp"
+#include "anbamfilehelper.hpp"
 #include "otter_opts.hpp"
-#include "pairwise_alignment.hpp"
-#include "fasta_helper.hpp"
-#include "formatter.hpp"
 #include "BS_thread_pool.hpp"
-#include <htslib/faidx.h>
-#include "bindings/cpp/WFAligner.hpp"
+#include "anseqs.hpp"
+#include "anfahelper.hpp"
+#include "analignments.hpp"
+#include "andistmat.hpp"
+#include "otterclust.hpp"
 #include <iostream>
 #include <vector>
 #include <thread>
@@ -17,91 +17,137 @@
 #include <mutex>
 #include <cmath>
 
-double compute_se(const std::vector<double> values)
+uint32_t count_spanning_reads(const std::vector<ANREAD>& anread_block)
 {
-	if(values.empty()) return -1.0;
-	else{
-		double u = 0.0, n = 0.0;
-		for(const auto& v : values) u += v;
-		u /= values.size();
-		for(const auto& v : values) n += std::pow(v - u, 2.0);
-		return std::sqrt(n/(values.size() - 1));
-	}
-	
+	int count = 0;
+	for(const auto& read : anread_block) if(read.is_spanning()) ++count;
+	return count;
 }
 
-void general_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, bool& reads_only, BS::thread_pool& pool)
+void partition_valid_reads(bool& ignore_haps, std::vector<ANREAD>& anread_block, std::vector<int>& valid_indeces, std::vector<int>& invalid_indeces)
 {
-	
-	std::cerr << '(' << antimestamp() << "): Processing " << bam << '\n';
+	for(int i = 0; i < (int)anread_block.size(); ++i) {
+		if(!anread_block[i].is_spanning()) invalid_indeces.emplace_back(i);
+		else {
+			if(ignore_haps) valid_indeces.emplace_back(i);
+			else if(anread_block[i].hpt.is_defined()) valid_indeces.emplace_back(i);
+			else invalid_indeces.emplace_back(i);
+		}
+	}
+}
+
+void assemble_process(const OtterOpts& params, const std::string& bam, const std::vector<BED>& bed_regions, const std::string& reference, bool& reads_only, BS::thread_pool& pool)
+{
+	std::cerr << '(' << antimestamp() << "): Processing " << bam << " (" << params.read_group << ')' << std::endl;
 	std::mutex std_out_mtx;
 	pool.parallelize_loop(0, bed_regions.size(),
 		[&pool, &std_out_mtx, &params, &bam, &bed_regions, &reference, &reads_only](const int a, const int b){
 			BamInstance bam_inst;
 			bam_inst.init(bam, true);
-			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
-			wfa::WFAlignerGapAffine aligner2(4,6,2,wfa::WFAligner::Alignment,wfa::WFAligner::MemoryMed);
 			FaidxInstance faidx_inst;
 			if(!reference.empty()) faidx_inst.init(reference);
-
-			for(int i = a; i < b; ++i) {
-				AlignmentBlock alignment_block;
-				const BED& local_bed = bed_regions[i];
+			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
+			wfa::WFAlignerGapAffine aligner2(4,6,2,wfa::WFAligner::Alignment,wfa::WFAligner::MemoryMed);
+			for(int bed_i = a; bed_i < b; ++bed_i) {
+				/** set local BED region of interest with offsets **/
+				const BED& local_bed = bed_regions[bed_i];
+				//std::cout << local_bed.toScString() << std::endl;
 				BED mod_bed = local_bed;
-				mod_bed.start -= (uint32_t)params.offset;
-				mod_bed.end += (uint32_t)params.offset;
-				parse_alignments(params, mod_bed, bam_inst, alignment_block);
-				if(alignment_block.names.size() == 0) std::cerr << '(' << antimestamp() << "): WARNING: no reads found at region " << local_bed.toBEDstring() << '\n';
-				else if ((int)alignment_block.names.size() > params.max_cov) std::cerr << '(' << antimestamp() << "): WARNING: abnormal coverage for region " << local_bed.toBEDstring() << " (" << alignment_block.names.size() << "x)\n";
+				mod_bed.start -= (int)params.offset_l;
+				mod_bed.end += (int)params.offset_r;
+				/** parse reads, perform local realignments where needed **/
+				std::vector<ANREAD> anread_block;
+				if(params.is_debug){
+					std_out_mtx.lock();
+					std::cerr << '(' << antimestamp() << "): [DEBUG] Processing " << local_bed.toScString() << std::endl;
+					std_out_mtx.unlock();
+				}
+				parse_anreads(params, mod_bed, bam_inst, anread_block);
+				if(params.is_debug){
+					std_out_mtx.lock();
+					std::cerr << '(' << antimestamp() << "): [DEBUG] Loaded " << anread_block.size() << " reads" << std::endl;
+					std_out_mtx.unlock();
+				}
+				if((int)anread_block.size() > params.max_cov) std::cerr << '(' << antimestamp() << "): [WARNING] Skipping region with abnormal coverage: " << local_bed.toScString() << " (" << anread_block.size() << ")" << std::endl;
 				else{
-					std::string region_str = local_bed.toBEDstring();
-					if(!reference.empty()) otter_realignment(local_bed.chr, (int)mod_bed.start, (int)mod_bed.end, params.flank, params.min_sim, faidx_inst, alignment_block, aligner2);
+					if(!reference.empty()) {
+						local_realignment(mod_bed.chr, mod_bed.start, mod_bed.end, params.flank, params.min_sim, faidx_inst, anread_block, aligner2);
+						if(params.is_debug){
+							std_out_mtx.lock();
+							std::cerr << '(' << antimestamp() << "): [DEBUG] Locally realigned " << anread_block.size() << " reads" << std::endl;
+							std_out_mtx.unlock();
+						}
+					}
 					if(reads_only){
 						std_out_mtx.lock();
-						for(int i = 0; i < (int)alignment_block.names.size(); ++i) {
-							if(params.is_sam) output_fa2sam(alignment_block.names[i], local_bed.chr, local_bed.start, local_bed.end, alignment_block.seqs[i], params.read_group, -1, alignment_block.names.size(), alignment_block.statuses[i].spanning_l, alignment_block.statuses[i].spanning_r, -1, -1.0);
-							else std::cout << '>' << region_str << ' ' << alignment_block.names[i] << ' ' << alignment_block.statuses[i].is_spanning() << '\n' << alignment_block.seqs[i] << '\n';
+						for(const auto& read : anread_block) {
+							if(params.is_fa) read.stdout_fa(local_bed.toScString());
+							else read.stdout_sam(local_bed.chr,local_bed.start, local_bed.end, params.read_group);
 						}
 						std_out_mtx.unlock();
 					}
 					else{
-						std::vector<int> spannable_indeces;
-						for(int j = 0; j < (int)alignment_block.statuses.size(); ++j) if(alignment_block.statuses[j].is_spanning()) spannable_indeces.emplace_back(j);
-						if(!spannable_indeces.empty()) {
-							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << '>' << alignment_block.names[j] << ' ' << alignment_block.statuses[j].is_spanning() << '\n' << alignment_block.seqs[j] << '\n';
-							DistMatrix distmatrix(spannable_indeces.size());
-							std::vector<int> labels;
-							int initial_clusters;
-							otter_hclust(params.max_alleles, params.bandwidth, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, spannable_indeces, distmatrix, aligner, alignment_block, labels, initial_clusters);
-							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\n';
-							std::vector<std::string> consensus_seqs;
-							std::vector<std::vector<double>> ses;
-							otter_rapid_consensus(spannable_indeces, labels, distmatrix, aligner2, alignment_block, consensus_seqs, ses);
-							otter_nonspanning_assigment(params.min_sim, params.max_error, alignment_block, aligner, labels);
+						//for(const auto& r : anread_block) std::cout << r.name << '\t' << r.is_spanning_l << '\t' << r.is_spanning_r << '\n' << r.seq << '\n';
+						uint32_t spanning_reads = count_spanning_reads(anread_block);
+						if(spanning_reads == 0) {
 							std_out_mtx.lock();
-							//for(int j = 0; j < (int)alignment_block.names.size(); ++j) std::cout << j << '\t' << labels[j] << '\t' << alignment_block.statuses[j].spanning_l << '\t' << alignment_block.statuses[j].spanning_r << '\t' << alignment_block.statuses[j].alignment_coords.first << '\t' << alignment_block.statuses[j].alignment_coords.second << '\n';
-							for(int j = 0; j < (int)consensus_seqs.size(); ++j){
-								int spanning_cov = 0, cov = 0;
-								for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[spannable_indeces[k]] == j) ++spanning_cov;
-								for(const auto& l : labels) if(l == j) ++cov;
-								double se; 
-								if(spanning_cov == 1) se = -1;
-								else if(spanning_cov > 2) se = compute_se(ses[j]);
-								else {
-									std::vector<int> local_cluster_indeces;
-									for(int k = 0; k < (int)spannable_indeces.size();++k) if(labels[spannable_indeces[k]] == j) local_cluster_indeces.emplace_back(k);
-									se = distmatrix.get_dist(local_cluster_indeces[0], local_cluster_indeces[1]);
-								}
-								if(params.is_sam) {
-									std::string assembly_name = region_str + "_" + std::to_string(j);
-									output_fa2sam(assembly_name, local_bed.chr, local_bed.start, local_bed.end, consensus_seqs[j], params.read_group, cov, alignment_block.names.size(), -1, -1, initial_clusters, se);
-								}
-								else{
-									std::cout << '>' << region_str << ' ' << cov << ' ' << alignment_block.names.size() << ' ' << initial_clusters << ' ' << se << '\n';
-									std::cout << consensus_seqs[j] << '\n';
+							std::cerr << '(' << antimestamp() << "): [WARNING] No spanning reads for " << local_bed.toScString() << std::endl;
+							std_out_mtx.unlock();
+						}
+						else{
+							/** find valid reads (spanning and haplotagged (if user required)) **/
+							//note: mutable to adjust condition
+							bool local_ignore_haps = params.ignore_haps;
+							std::vector<int> valid_indeces;
+							std::vector<int> invalid_indeces;
+							partition_valid_reads(local_ignore_haps, anread_block, valid_indeces, invalid_indeces);
+							//std::cout << "valid: " << valid_indeces.size() << '\t' << "invalid:" << invalid_indeces.size() << std::endl;
+							//not enough haplotagged reads, adjust to 'ignore-haps' mode
+							if(valid_indeces.size() < 2){
+								local_ignore_haps = true;
+								valid_indeces.clear();
+								invalid_indeces.clear();
+								partition_valid_reads(local_ignore_haps, anread_block, valid_indeces, invalid_indeces);
+								if(spanning_reads != valid_indeces.size()){
+									std_out_mtx.lock();
+									std::cerr << '(' << antimestamp() << "): [ERROR] Unexpected number of valid reads after switching to 'ignore-haps' mode: " << spanning_reads << " vs " << valid_indeces.size() << std::endl;
+									std_out_mtx.unlock();
+									exit(1);
 								}
 							}
-							std_out_mtx.unlock();
+							if(valid_indeces.empty()) {
+								std_out_mtx.lock();
+								std::cerr << '(' << antimestamp() << "): [WARNING] No spanning reads for " << local_bed.toScString() << std::endl;
+								std_out_mtx.unlock();
+							}
+							else{
+								/** create matrix of pairwise edit-distances **/
+								DistMatrix distmatrix(valid_indeces.size());
+								if(params.max_alleles != 1) fill_dist_matrix(local_ignore_haps, aligner, anread_block, valid_indeces, distmatrix);
+								/** cluster reads and fine allele seqs **/
+								ClusteringStatus clustmsg;
+								otter_hclust(local_ignore_haps, params.max_alleles, params.bandwidth, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, valid_indeces, distmatrix, aligner, anread_block, clustmsg);
+								std::vector<int> labels(anread_block.size(), -1);
+								for(uint32_t i = 0; i < clustmsg.labels.size(); ++i) {
+									labels[valid_indeces[i]] = clustmsg.labels[i];
+								}
+								//for(uint32_t i = 0; i < labels.size(); ++i) std::cout << i << '\t' << labels[i] << '\t' << anread_block[i].name << std::endl;
+								if(!invalid_indeces.empty()){
+									//std::cout << "reassigning" << std::endl;
+									invalid_reassignment(local_ignore_haps, params.min_sim, params.max_error, clustmsg.fc, anread_block, aligner, labels);
+									//for(uint32_t i = 0; i < labels.size(); ++i) std::cout << i << '\t' << labels[i] << '\t' << anread_block[i].name << std::endl;
+								}
+								std::vector<ANALLELE> alleles(clustmsg.fc);
+								rapid_consensus(local_ignore_haps, anread_block, labels, valid_indeces, clustmsg.fc, distmatrix, aligner2, alleles);
+								//std::cout << "cosensus" << std::endl;
+								std_out_mtx.lock();
+								for(int l = 0; l < clustmsg.fc; ++l) {
+									alleles[l].ic = clustmsg.ic;
+									if(params.is_fa) alleles[l].stdout_fa(params.read_group, local_bed.toScString() + '#' + std::to_string(l));
+									else alleles[l].stdout_sam(local_bed.toScString() + "_" + std::to_string(l), local_bed.chr, local_bed.start, local_bed.end, params.read_group);
+								}
+								std_out_mtx.unlock();
+							}
 						}
 					}
 				}
@@ -111,23 +157,23 @@ void general_process(const OtterOpts& params, const std::string& bam, const std:
 	}).wait();
 }
 
-
-void assemble(const std::vector<std::string>& bams, const std::string& bed, const std::string& reference, bool& reads_only, const OtterOpts& params)
+void assemble(const std::string& bam, const std::string& bed, const std::string& reference, bool& reads_only, const OtterOpts& params)
 {
  	BS::thread_pool pool(params.threads);
-
 
  	std::vector<BED> bed_regions;
  	parse_bed_file(bed, bed_regions);
 
- 	if(params.is_sam){
-		BamInstance bam_inst;
-		bam_inst.init(bams.front(), true);
+ 	if(!params.is_fa){
+ 		BamInstance bam_inst;
+		bam_inst.init(bam, true);
 		for(int i = 0; i < bam_inst.header->n_targets; ++i){
 			std::cout << "@SQ\tSN:" << bam_inst.header->target_name[i] << "\tLN:" << bam_inst.header->target_len[i] << '\n';
 		}
-		if(!params.read_group.empty()) std::cout << "@RG\tID:" << params.read_group << '\n';
+		std::cout << "@RG\tID:" << params.read_group << '\n';
+		std::cout << "@PG\tID:otter\tOF:" << params.offset_l << ',' << params.offset_r << '\n';
+		//output_preset_offset_tag(params.offset);
 		bam_inst.destroy();
-	}
- 	for(const auto& bam : bams) general_process(params, bam, bed_regions, reference, reads_only, pool);
+ 	}
+	assemble_process(params, bam, bed_regions, reference, reads_only, pool);
 }

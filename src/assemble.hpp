@@ -3,7 +3,7 @@
 #include <vector>
 
 void assemble(
-	const std::vector<std::string>&,
+	const std::string&,
 	const std::string&,
 	const std::string&,
 	bool&,

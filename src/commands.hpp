@@ -3,22 +3,22 @@ int command_assemble(
 	char**
 );
 
-int command_fa2sam(
-	int, 
-	char**
-);
-
 int command_genotype(
 	int, 
 	char**
 );
 
-int command_length(
+int command_vcf2mat(
 	int, 
 	char**
 );
 
-int command_cov(
+int command_wgat(
+	int, 
+	char**
+);
+
+int command_compare(
 	int, 
 	char**
 );
