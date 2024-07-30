@@ -9,6 +9,7 @@ void genotype(
 	const int&,
 	const bool&,
 	const bool&,
+	const bool&,
 	const std::string&,
 	const std::string&
 );

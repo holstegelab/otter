@@ -198,10 +198,13 @@ void output_vcf(const BED& region, const int& offset, const std::vector<std::str
 			}
 		}
 	}
-	std::cout << "\t.\t.\tGTS=";
-	for(int i = 0; i < (int)reps.size(); ++i){
-		if(i > 0) std::cout << ',';
-		std::cout << scaled_labels[i];
+	std::cout << "\t.\t.";
+	if(!scaled_labels.empty()){
+		std::cout << "\tGTS=";
+		for(int i = 0; i < (int)reps.size(); ++i){
+			if(i > 0) std::cout << ',';
+			std::cout << scaled_labels[i];
+		}
 	}
 	std::cout << "\tGT\t";
 	int samples_processed = 0;
@@ -233,12 +236,12 @@ void center_ref_labels(const int& max_label, const int& ref_label, std::vector<i
 }
 
 
-void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const std::vector<BED>& regions, const std::string& bam, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, const std::string& reference, const int& ref_allele_i)
+void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const bool& is_scaled, const std::vector<BED>& regions, const std::string& bam, const std::vector<std::string>& index2sample, const std::map<std::string,int>& sample2index, const std::string& reference, const int& ref_allele_i)
 {
 	BS::thread_pool pool(params.threads);
 	std::mutex stdout_mtx;
 	pool.parallelize_loop(0, regions.size(),
-		[&pool, &stdout_mtx, &params, &ac_mincov, &tc_mincov, &is_summary, &is_length, &bam, &regions, &index2sample, &sample2index, &reference, &ref_allele_i](const int a, const int b){
+		[&pool, &stdout_mtx, &params, &ac_mincov, &tc_mincov, &is_summary, &is_length, &is_scaled, &bam, &regions, &index2sample, &sample2index, &reference, &ref_allele_i](const int a, const int b){
 			BamInstance bam_inst;
 			bam_inst.init(bam, true);
 			wfa::WFAlignerEdit aligner(wfa::WFAligner::Score, wfa::WFAligner::MemoryMed);
@@ -296,25 +299,28 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 				    				std::vector<int> reps(max_label);
 				    				find_reps(matrix, alleles, labels, reps);
 				    				//for(const auto& r : reps) std::cout << r << '\t' << alleles[r] << '\n';
-				    				std::vector<double> scaled_labels(max_label);
-				    				if(max_label <= 2) for(int i = 0; i < max_label; ++i) scaled_labels[i] = i;
-				    				else{
-				    					double u = 0.0, n = 0.0;
-										for(const auto& v : avg_sizes) u += v;
-										u /= avg_sizes.size();
-										for(const auto& v : avg_sizes) n += ((v - u)*(v-u));
-										double se = std::sqrt(n/(avg_sizes.size() - 1));
-										double large = 0.0;
-										for(const auto& size : avg_sizes) if(size > params.dist_length_large) ++large;
-										large /= index2sample.size();
-										bool length_dist_function = false;
-										if(large >= params.dist_length_frac && params.dist_length_se > 500) {
-											stdout_mtx.lock();
-											std::cerr << "(" << antimestamp() << "): WARNING: " << region_str << " triggered length distance function (F1Kbp=" << large << ",SE=" << se << ')' << std::endl;
-											stdout_mtx.unlock();
-											length_dist_function = true;
-										}
-										scaled_genotype(aligner, matrix, reps, label_counts, alleles, scaled_labels, length_dist_function);
+				    				std::vector<double> scaled_labels;
+				    				if(is_scaled){
+				    					scaled_labels.resize(max_label);
+					    				if(max_label <= 2) for(int i = 0; i < max_label; ++i) scaled_labels[i] = i;
+					    				else{
+					    					double u = 0.0, n = 0.0;
+											for(const auto& v : avg_sizes) u += v;
+											u /= avg_sizes.size();
+											for(const auto& v : avg_sizes) n += ((v - u)*(v-u));
+											double se = std::sqrt(n/(avg_sizes.size() - 1));
+											double large = 0.0;
+											for(const auto& size : avg_sizes) if(size > params.dist_length_large) ++large;
+											large /= index2sample.size();
+											bool length_dist_function = false;
+											if(large >= params.dist_length_frac && params.dist_length_se > 500) {
+												stdout_mtx.lock();
+												std::cerr << "(" << antimestamp() << "): WARNING: " << region_str << " triggered length distance function (F1Kbp=" << large << ",SE=" << se << ')' << std::endl;
+												stdout_mtx.unlock();
+												length_dist_function = true;
+											}
+											scaled_genotype(aligner, matrix, reps, label_counts, alleles, scaled_labels, length_dist_function);
+					    				}
 				    				}
 				    				if(ref_allele_i >= 0){
 				    					stdout_mtx.lock();
@@ -325,11 +331,14 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 				    					for(int i = 0; i < (int)sample2intervals.size(); ++i){
 						    				double a1 = labels[sample2intervals[i].second.first];
 						    				double a2 =labels[sample2intervals[i].second.second];
-						    				double sa1 = scaled_labels[a1];
-						    				double sa2 = scaled_labels[a2];
-						    				//bool is_a1_min = a1 < a2;
 						    				stdout_mtx.lock();
-						    				std::cout << index2sample[sample2intervals[i].first] << '\t' << region_str << '\t' << a1 << '/' << a2 << '\t' << sa1 << '/' << sa2 << '\n';
+						    				std::cout << index2sample[sample2intervals[i].first] << '\t' << region_str << '\t' << a1 << '/' << a2;
+						    				if(!is_scaled) std::cout << '\n';
+						    				else {
+						    					double sa1 = scaled_labels[a1];
+						    					double sa2 = scaled_labels[a2];
+						    				 	std::cout << '\t' << sa1 << '/' << sa2 << '\n';
+						    				}
 						    				stdout_mtx.unlock();
 						    			}
 				    				}
@@ -345,7 +354,7 @@ void pairwise_process(const OtterOpts& params, const int& ac_mincov, const int& 
 
 }
 
-void genotype(const std::string& bam, const std::string& bed, OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const std::string& reference, const std::string& vcf)
+void genotype(const std::string& bam, const std::string& bed, OtterOpts& params, const int& ac_mincov, const int& tc_mincov, const bool& is_summary, const bool& is_length, const bool& is_scaled, const std::string& reference, const std::string& vcf)
 {
 	std::vector<BED> regions;
 	parse_bed_file(bed, regions);
@@ -391,5 +400,5 @@ void genotype(const std::string& bam, const std::string& bed, OtterOpts& params,
 		output_vcf_header(bam, sample_index, ref_name);
 	}
 
-	pairwise_process(params, ac_mincov, tc_mincov, is_summary, is_length, regions, bam, sample_index, sample2index, reference, reference_i);
+	pairwise_process(params, ac_mincov, tc_mincov, is_summary, is_length, is_scaled, regions, bam, sample_index, sample2index, reference, reference_i);
 }

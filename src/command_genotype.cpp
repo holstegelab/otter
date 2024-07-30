@@ -27,6 +27,7 @@ void command_genotype_parser(int argc, char** argv){
       ("c, allele-mincov", "Minimum coverage per allele sequence", cxxopts::value<int>()->default_value("0"))
       ("e, max-error", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.05"))
       ("l, length", "Output multi-column TSV representing join, min, and max sequence lengths as genotypes", cxxopts::value<bool>()->default_value("false"))
+      ("scaled", "Compute scaled genotypes", cxxopts::value<bool>()->default_value("false"))
       ("s, summary", "Output only summary information.", cxxopts::value<bool>()->default_value("false"))
       ("t, threads", "Total threads to use.", cxxopts::value<int>()->default_value("1"));
     //parse CLI arguments
@@ -44,10 +45,11 @@ void command_genotype_parser(int argc, char** argv){
       const int tc_mincov = result["total-mincov"].as<int>();
       const bool is_summary = result["summary"].as<bool>();
       const bool is_length = result["length"].as<bool>();
+      const bool is_scaled = result["scaled"].as<bool>();
       const std::string reference = result["reference"].as<std::string>();
       const std::string vcf = result["vcf"].as<std::string>();
       params.init_dist_length(result["dist-length"].as<std::string>());
-      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov, is_summary, is_length, reference, vcf);
+      genotype(inputs.front(), bed, params, ac_mincov, tc_mincov, is_summary, is_length, is_scaled, reference, vcf);
     }
   }
 

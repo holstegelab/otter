@@ -70,7 +70,8 @@ void parse_bam_allele(const std::string& target_region, const int& ac_mincov, co
 		if(aux_ptr != NULL) tc = bam_aux2i(aux_ptr);
 		if(ac >= ac_mincov && tc >= tc_mincov){
 		    uint8_t *q = bam_get_seq(read);
-		    std::string seq(read->core.l_qseq, 'N');
+		    uint32_t l_qseq = read->core.l_qseq > 0 ? read->core.l_qseq : 1;
+		    std::string seq(l_qseq, 'N');
 		    for(int i = 0; i  < read->core.l_qseq; i++) seq[i] = seq_nt16_str[bam_seqi(q, i)];
 		    sample_indeces.emplace_back(it->second);
 		    alleles.emplace_back(seq);
