@@ -1,5 +1,3 @@
-#cd include/WFA2-lib; make clean setup lib_wfa; cd ../../
-
 WFADIR=include/WFA2-lib
 HCLUST=include/hclust-cpp
 
