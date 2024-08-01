@@ -18,10 +18,10 @@ void command_genotype_parser(int argc, char** argv){
       .set_tab_expansion()
       .custom_help("[parameters] <BAM>")
       .add_options(" REQUIRED")
-      ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>())
-      ("r, reference", "Use this reference genome to output in VCF format.", cxxopts::value<std::string>()->default_value(""));
+      ("b, bed", "BED-formatted file of target regions.", cxxopts::value<std::string>());
     options
       .add_options("OPTIONAL")
+      ("r, reference", "Provide reference genome for joint-genotyping (VCF). If not provided, will output lengths (TSV).", cxxopts::value<std::string>()->default_value(""))
       ("e, max-error", "Maximimum sequence dissimilarity.", cxxopts::value<double>()->default_value("0.025"))
       ("s, max-cosdis", "Maximum cosine dissimilarity.", cxxopts::value<double>()->default_value("0.025"))
       ("t, threads", "Total threads to use.", cxxopts::value<int>()->default_value("1"));

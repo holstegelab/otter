@@ -114,4 +114,4 @@ Definitions:
 * The backbone of the assembly relies on spanning-reads, and hence there is a size limitation (spannable by the long-reads).
 
 ### Citations
-Pre-print coming soon.
+[See our preprint (update coming soon)](https://www.biorxiv.org/content/10.1101/2024.03.15.585288v1)

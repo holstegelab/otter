@@ -90,13 +90,15 @@ void genotype_process(const OtterOpts& params, const std::string& bam, const std
 				if(anallele_block.empty()) std::cerr << "(" << antimestamp() << "): [WARNING] no alleles found for " << region.toScString() << std::endl;
 				else{
 					int ref_allele_index = -1;
-					{
-						std::string refseq;
-						faidx_inst.fetch(region.chr, region.start - si.offset_l, region.end + si.offset_r - 1, refseq);
-						ref_allele_index = allele_sample_indeces.size();
-						allele_sample_indeces.emplace_back(refindex);
-						anallele_block.emplace_back(refseq);
+					if(!reference.empty()){
+						{
+							std::string refseq;
+							faidx_inst.fetch(region.chr, region.start - si.offset_l, region.end + si.offset_r - 1, refseq);
+							ref_allele_index = allele_sample_indeces.size();
+							allele_sample_indeces.emplace_back(refindex);
+							anallele_block.emplace_back(refseq);
 
+						}
 					}
 					std::vector<std::optional<std::pair<int,int>>> sample2localindeces(si.sample2index.size());
 					for(int i = 0; i < (int)allele_sample_indeces.size(); ++i){
@@ -107,49 +109,62 @@ void genotype_process(const OtterOpts& params, const std::string& bam, const std
 							else if(i > pair_indeces.value().second) pair_indeces.value().second = i;
 						}
 					}
-					/**
-					for(uint32_t i = 0; i < si.sample2index.size(); ++i) {
-						const auto& local = sample2localindeces[i];
-						if(local.has_value()) std::cout << i << '\t' << local.value().first << '\t' << local.value().second << '\n';
-						else std::cout << "NO LOCAL: " << si.index2sample[i] << std::endl;
+
+					if(reference.empty()){
+						for(uint32_t i = 0; i < si.sample2index.size(); ++i){
+							const auto& sample_indeces = sample2localindeces[i];
+							if(sample_indeces.has_value() && (int)i != refindex) {
+								int a1 = anallele_block[sample_indeces.value().first].seq.size();
+								int a2 = anallele_block[sample_indeces.value().second].seq.size();
+								std::cout << region.toScString() << '\t' << si.index2sample[i] << '\t' << (a1 < a2 ? a1 : a2) << '\t' << (a1 > a2 ? a1 : a2) << '\n';
+							}
+						}
 					}
-					
-					std::cout << anallele_block.size() << '\t' << allele_sample_indeces.size() << '\n';
-					for(int i = 0; i < (int)anallele_block.size(); ++i){
-						std::cout << si.index2sample[allele_sample_indeces[i]] << '\t' << anallele_block[i].se << '\t' << anallele_block[i].seq << '\n';
+					else{
+						/**
+						for(uint32_t i = 0; i < si.sample2index.size(); ++i) {
+							const auto& local = sample2localindeces[i];
+							if(local.has_value()) std::cout << i << '\t' << local.value().first << '\t' << local.value().second << '\n';
+							else std::cout << "NO LOCAL: " << si.index2sample[i] << std::endl;
+						}
+						
+						std::cout << anallele_block.size() << '\t' << allele_sample_indeces.size() << '\n';
+						for(int i = 0; i < (int)anallele_block.size(); ++i){
+							std::cout << si.index2sample[allele_sample_indeces[i]] << '\t' << anallele_block[i].se << '\t' << anallele_block[i].seq << '\n';
+						}
+						*/
+						std::vector<Genotype> genotypes(anallele_block.size());
+						std::vector<int> gt_reps;
+						int acc_gt = anallele_cluster(params.max_error, params.max_cosdis, anallele_block, genotypes, gt_reps);
+						
+						if(acc_gt != (int)gt_reps.size()){
+							std::cerr << "(" << antimestamp() << "): ERROR unexpected representative alleles (" << gt_reps.size() << ") for " << acc_gt << " total alleles" << std::endl;
+							exit(1);
+						}
+						//std::cout << "total gts: " << acc_gt << " total reps: " << gt_reps.size() << std::endl;
+						//for(uint32_t i = 0; i < anallele_block.size(); ++i) std::cout << i << '\t' << si.index2sample[allele_sample_indeces[i]] << '\t' << genotypes[i] << '\t' << anallele_block[i].seq << '\n';
+						int ref_gt = genotypes[ref_allele_index].gt;
+						//std::cout << "ref_gt: "  << ref_gt << '\n';
+						
+						std::vector<int> gt_reps_centered = gt_reps;
+						for(int i = 0; i < (int)gt_reps_centered.size(); ++i){
+							if(i == 0) gt_reps_centered[0] = ref_allele_index;
+							else if(i <= ref_gt) gt_reps_centered[i] = gt_reps[i-1];
+						}
+						
+						for(uint32_t i = 0; i < anallele_block.size(); ++i){
+							if(genotypes[i].gt == ref_gt) genotypes[i].gt = 0;
+							else if(genotypes[i].gt < ref_gt) ++genotypes[i].gt;
+						}
+						
+						//for(uint32_t i = 0; i < anallele_block.size(); ++i) std::cout << i << '\t' << si.index2sample[allele_sample_indeces[i]] << '\t' << genotypes[i].gt << '\t' << genotypes[i].gt_l << '\t' << genotypes[i].gt_k << '\t' << anallele_block[i].seq << std::endl;
+						stdout_mtx.lock();
+						output_vcf_line(si.offset_l, si.offset_r, region, si, ref_allele_index, anallele_block, genotypes, gt_reps_centered, sample2localindeces);
+						stdout_mtx.unlock();
 					}
-					*/
-					std::vector<Genotype> genotypes(anallele_block.size());
-					std::vector<int> gt_reps;
-					int acc_gt = anallele_cluster(params.max_error, params.max_cosdis, anallele_block, genotypes, gt_reps);
-					
-					if(acc_gt != (int)gt_reps.size()){
-						std::cerr << "(" << antimestamp() << "): ERROR unexpected representative alleles (" << gt_reps.size() << ") for " << acc_gt << " total alleles" << std::endl;
-						exit(1);
-					}
-					//std::cout << "total gts: " << acc_gt << " total reps: " << gt_reps.size() << std::endl;
-					//for(uint32_t i = 0; i < anallele_block.size(); ++i) std::cout << i << '\t' << si.index2sample[allele_sample_indeces[i]] << '\t' << genotypes[i] << '\t' << anallele_block[i].seq << '\n';
-					int ref_gt = genotypes[ref_allele_index].gt;
-					//std::cout << "ref_gt: "  << ref_gt << '\n';
-					
-					std::vector<int> gt_reps_centered = gt_reps;
-					for(int i = 0; i < (int)gt_reps_centered.size(); ++i){
-						if(i == 0) gt_reps_centered[0] = ref_allele_index;
-						else if(i <= ref_gt) gt_reps_centered[i] = gt_reps[i-1];
-					}
-					
-					for(uint32_t i = 0; i < anallele_block.size(); ++i){
-						if(genotypes[i].gt == ref_gt) genotypes[i].gt = 0;
-						else if(genotypes[i].gt < ref_gt) ++genotypes[i].gt;
-					}
-					
-					//for(uint32_t i = 0; i < anallele_block.size(); ++i) std::cout << i << '\t' << si.index2sample[allele_sample_indeces[i]] << '\t' << genotypes[i].gt << '\t' << genotypes[i].gt_l << '\t' << genotypes[i].gt_k << '\t' << anallele_block[i].seq << std::endl;
-					stdout_mtx.lock();
-					output_vcf_line(si.offset_l, si.offset_r, region, si, ref_allele_index, anallele_block, genotypes, gt_reps_centered, sample2localindeces);
-					stdout_mtx.unlock();
 				}
 			}
-			faidx_inst.destroy();
+			if(!reference.empty()) faidx_inst.destroy();
 			bam_inst.destroy();
 	}).wait();
 
@@ -158,9 +173,10 @@ void genotype_process(const OtterOpts& params, const std::string& bam, const std
 void genotype(OtterOpts& params, const std::string& bam, const std::string& bed, const std::string& reference)
 {
 	std::string refname = "OTTER_INTREF";
+
 	std::vector<BED> regions;
 	parse_bed_file(bed, regions);
-	
+
 	SampleIndex si;
 	si.init(bam);
 	std::cerr << '(' << antimestamp() << "): Found " << si.index2sample.size() << " samples (read-group tags)\n";
@@ -171,7 +187,6 @@ void genotype(OtterOpts& params, const std::string& bam, const std::string& bed,
 		si.index2sample.emplace_back(refname);
 		si.sample2index[refname] = refindex;
 	}
-	if(!params.is_fa) output_vcf_header(bam, si.index2sample, refname);
-
+	if(!reference.empty()) output_vcf_header(bam, si.index2sample, refname);
 	genotype_process(params, bam, regions, reference, si, refindex);
 }
