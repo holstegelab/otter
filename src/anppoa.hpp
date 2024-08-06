@@ -79,6 +79,7 @@ inline void PPOA::init(std::string& _b)
 			hps[i] = true;
 			if(!hps[i-1]) hps[i-1] = true;
 		}
+		if(backbone.size() - i <= 10) ending_nodes.insert(i);
 	}
 };
 
@@ -342,18 +343,20 @@ inline void PPOA::consensus(std::string& consensus_seq)
 		}
 	}
 
-	/**
-	std::map<uint32_t, ppoa_path> map_heaviest;
-	for(uint32_t n = 0; n < nodes.size(); ++n) {
-		std::cout << n << std::endl;
-		set_heaviest_path(n, map_heaviest);
-	}
-	*/
 	uint32_t h_node = 0;
 	ppoa_path h_path;
 	bool not_init = true;
 
+/**
+	std::cout << "ending nodes: ";
+	for(const auto& e : ending_nodes) std::cout << e << ',';
+	std::cout << '\n';
+*/
+
 	for(const auto& h : map_heaviest) {
+		//std::cout << h_node << '\t' << h_path.weight << '\t';
+		//for(const auto& h : h_path.path) std::cout << h << ',';
+		//std::cout << '\n';
 		if(ending_nodes.find(h.first) != ending_nodes.end()){
 			if(not_init || h.second.weight > h_path.weight){
 				if(not_init) not_init = false;
@@ -363,8 +366,9 @@ inline void PPOA::consensus(std::string& consensus_seq)
 		}
 	}
 
-
 	//for(uint32_t i = 0; i < nodes.size(); ++i) std::cout << i << '\t' << nodes[i] << '\n';
+
+	//std::cout << h_node << '\t' << h_path.weight << '\t' << h_path.path.size() << '\n';
 
 	h_path.path.emplace_back(h_node);
 
