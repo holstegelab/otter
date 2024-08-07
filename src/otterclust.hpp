@@ -40,7 +40,9 @@ DecisionBound otter_find_clustering_dist(
 void otter_hclust(
 	const bool& ignore_haps, 
 	const int& max_alleles, 
-	const double& bandwidth, 
+	const double& bandwidth_short,
+	const int& bandwidth_length,
+	const double& bandwidth_long, 
 	const double& max_tolerable_diff, 
 	const double& min_cov_fraction, 
 	const int& min_cov_fraction2_l, 

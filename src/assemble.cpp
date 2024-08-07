@@ -126,7 +126,7 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 								if(params.max_alleles != 1) fill_dist_matrix(local_ignore_haps, aligner, anread_block, valid_indeces, distmatrix);
 								/** cluster reads and fine allele seqs **/
 								ClusteringStatus clustmsg;
-								otter_hclust(local_ignore_haps, params.max_alleles, params.bandwidth, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, valid_indeces, distmatrix, aligner, anread_block, clustmsg);
+								otter_hclust(local_ignore_haps, params.max_alleles, params.bandwidth_short, params.bandwidth_length, params.bandwidth_long, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, valid_indeces, distmatrix, aligner, anread_block, clustmsg);
 								std::vector<int> labels(anread_block.size(), -1);
 								for(uint32_t i = 0; i < clustmsg.labels.size(); ++i) {
 									labels[valid_indeces[i]] = clustmsg.labels[i];

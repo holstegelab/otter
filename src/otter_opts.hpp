@@ -17,7 +17,9 @@ class OtterOpts {
 		double min_cov_fraction2_f;
 		int threads;
 		double max_error;
-		double bandwidth;
+		double bandwidth_short;
+		double bandwidth_long;
+		int bandwidth_length;
 		int flank;
 		double min_sim;
 		bool nonprimary;
@@ -41,7 +43,7 @@ class OtterOpts {
 		void init_threads(int);
 		void init_max_error(double);
 		void init_max_cosdis(double);
-		void init_bandwidth(double);
+		void init_bandwidth(std::string);
 		void init_flank(int);
 		void init_min_sim(double);
 		void init_min_cov_fraction2(std::string);

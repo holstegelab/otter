@@ -115,11 +115,32 @@ void OtterOpts::init_max_cosdis(double _max_cosdis)
 	}
 }
 
-void OtterOpts::init_bandwidth(double _bandwidth)
+void OtterOpts::init_bandwidth(std::string tmp)
 {
-	if(is_zero_one_range(_bandwidth)) bandwidth = _bandwidth;
+	std::vector<std::string> tmp_inputs;
+	parse_line(',', tmp, tmp_inputs);
+	if(tmp_inputs.empty()){
+		std::cerr << '(' << antimestamp() << "): [ERROR] expected single string or comma-separated values: " << tmp <<  std::endl;
+		exit(0);
+	}
 	else{
-		std::cerr << '(' << antimestamp() << "): [ERROR] Invalid bandwidth value: " << _bandwidth <<  std::endl;
+		bandwidth_short = std::stod(tmp_inputs[0]);
+		if(tmp_inputs.size() == 1){
+			bandwidth_long = bandwidth_short;
+			bandwidth_length = 0;
+		}
+		else if(tmp_inputs.size() == 3) {
+			bandwidth_long = std::stod(tmp_inputs[2]);
+			bandwidth_length = std::stoi(tmp_inputs[1]);
+		}
+		else{
+			std::cerr << '(' << antimestamp() << "): [ERROR] expected three comma-separated values: " << tmp <<  std::endl;
+			exit(0);
+		}
+	}
+	
+	if(!(is_zero_one_range(bandwidth_short) && is_zero_one_range(bandwidth_long) && bandwidth_length >= 0)){
+		std::cerr << '(' << antimestamp() << "): [ERROR] Bandwidth values must be 0 <= x <= 1.0 and length >= 0, found: (" << bandwidth_short << ',' << bandwidth_length << ',' << bandwidth_long << ')' <<  std::endl;
 		exit(0);
 	}
 }

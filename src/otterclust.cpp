@@ -115,7 +115,7 @@ DecisionBound otter_find_clustering_dist(const int& radius, const double& dinter
  	}
 }
 
-void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double& bandwidth, const double& max_tolerable_diff, const double& min_cov_fraction, const int& min_cov_fraction2_l, const double& min_cov_fraction2_f,const std::vector<int>& indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, std::vector<ANREAD>& reads, ClusteringStatus& clustering)
+void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double& bandwidth_short, const int& bandwidth_length, const double& bandwidth_long, const double& max_tolerable_diff, const double& min_cov_fraction, const int& min_cov_fraction2_l, const double& min_cov_fraction2_f,const std::vector<int>& indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, std::vector<ANREAD>& reads, ClusteringStatus& clustering)
 {
 	//note: labels is indexed against indeces
 	clustering.labels.resize(indeces.size(), -1);
@@ -159,6 +159,13 @@ void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double&
 			//radius to calculate KDE surrounding an error rate
 			int radius = int(max_tolerable_diff/error_intervals);
 			radius = radius < 1 ? 1 : radius;
+			double bandwidth = bandwidth_short;
+			for(const auto& i : indeces) {
+				if((int)reads[i].seq.size() >= bandwidth_length){
+					bandwidth = bandwidth_long;
+					break;
+				}
+			}
 			DecisionBound dists = otter_find_clustering_dist(radius, error_intervals, bandwidth, distmatrix);
 			//std::cout << dists.dist0 << ',' << dists.dist1 << ',' << dists.cut0 << '\n';
 			//too small to separate based on user input

@@ -31,15 +31,15 @@ void command_assemble_parser(int argc, char** argv){
       ("debug", "Turn on debug mode.", cxxopts::value<bool>()->default_value("false"));
     options
       .add_options("OPTIONAL (HEURISTICS)")
-      ("o, offset", "Extend start/end by this amount 'INT', or extend separately by these amounts 'INT,INT'", cxxopts::value<std::string>()->default_value("1,0"))
+      ("o, offset", "Extend start/end by this amount [INT], or extend separately given a comma-seperated string [INT,INT]", cxxopts::value<std::string>()->default_value("1,0"))
       ("a, max-alleles", "Maximum alleles allowed.", cxxopts::value<int>()->default_value("2"))
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("q, read-quality", "Minimium (PacBio) read-quality.", cxxopts::value<double>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
       ("F, cov-fraction", "Minimum coverage fraction per sequence.", cxxopts::value<double>()->default_value("0.2"))
-      ("A, cov-fraction-large", "Alternative minimum coverage fraction (INT,DOUBLE).", cxxopts::value<std::string>()->default_value("500,0.1"))
+      ("A, cov-fraction-large", "Alternative minimum coverage fraction given comma-seperated string [INT,DOUBLE].", cxxopts::value<std::string>()->default_value("500,0.1"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.01"))
-      ("h, bandwidth", "KDE bandwidth.", cxxopts::value<double>()->default_value("0.01"))
+      ("h, bandwidth", "KDE bandwidth [FLOAT], or separate for a length-threshold given a comma-seperated string [FLOAT,INT,FLOAT]", cxxopts::value<std::string>()->default_value("0.01,500,0.015"))
       ("f, flank-size", "Length of flanking seq re-alignment.", cxxopts::value<int>()->default_value("100"))
       ("s, min-sim", "Minimum similarity during re-alignment.", cxxopts::value<double>()->default_value("0.9"))
       ("t, threads", "Total number of threads.", cxxopts::value<int>()->default_value("1"));
@@ -76,7 +76,7 @@ void command_assemble_parser(int argc, char** argv){
       params.init_min_cov_fraction(result["cov-fraction"].as<double>());
       params.init_threads(result["threads"].as<int>());
       params.init_max_error(result["max-error"].as<double>());
-      params.init_bandwidth(result["bandwidth"].as<double>());
+      params.init_bandwidth(result["bandwidth"].as<std::string>());
       params.init_flank(result["flank-size"].as<int>());
       params.init_min_sim(result["min-sim"].as<double>());
       params.init_min_cov_fraction2(result["cov-fraction-large"].as<std::string>());
