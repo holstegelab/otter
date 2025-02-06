@@ -79,6 +79,15 @@ void OtterOpts::init_max_cov(int _max_cov)
 	}
 }
 
+void OtterOpts::init_min_allele_cov(int _min_allele_cov)
+{
+	if(_min_allele_cov >= 0) min_allele_cov = _min_allele_cov;
+	else{
+		std::cerr << '(' << antimestamp() << "): [ERROR] Invalid min-allele-coverage value: " << _min_allele_cov <<  std::endl;
+		exit(0);
+	}
+}
+
 void OtterOpts::init_min_cov_fraction(double _min_cov_fraction)
 {
 	if(is_zero_one_range(_min_cov_fraction)) min_cov_fraction = _min_cov_fraction;
