@@ -115,7 +115,7 @@ DecisionBound otter_find_clustering_dist(const int& radius, const double& dinter
  	}
 }
 
-void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double& bandwidth_short, const int& bandwidth_length, const double& bandwidth_long, const double& max_tolerable_diff, const double& min_cov_fraction, const int& min_cov_fraction2_l, const double& min_cov_fraction2_f, const int& min_allele_cov, const std::vector<int>& indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, std::vector<ANREAD>& reads, ClusteringStatus& clustering)
+void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double& bandwidth_short, const int& bandwidth_length, const double& bandwidth_long, const double& max_tolerable_diff, const double& min_cov_fraction, const int& min_cov_fraction2_l, const double& min_cov_fraction2_f, const std::vector<int>& indeces, DistMatrix& distmatrix, wfa::WFAligner& aligner, std::vector<ANREAD>& reads, ClusteringStatus& clustering)
 {
 	//note: labels is indexed against indeces
 	clustering.labels.resize(indeces.size(), -1);
@@ -188,8 +188,8 @@ void otter_hclust(const bool& ignore_haps, const int& max_alleles, const double&
 			    for(int i = 0; i < (int)indeces.size(); ++i) if(labels[i] > total_alleles) total_alleles = labels[i];
 			    ++total_alleles;
 				clustering.ic = total_alleles;
-				int min_cov1 = std::max(min_allele_cov, int(indeces.size()*min_cov_fraction + 0.5));
-				int min_cov2 = std::max(min_allele_cov, int(indeces.size()*min_cov_fraction2_f + 0.5));
+				int min_cov1 = int(indeces.size()*min_cov_fraction + 0.5);
+				int min_cov2 = int(indeces.size()*min_cov_fraction2_f + 0.5);
 
 				if(max_alleles != 0) {
 					//total reads per cluter label

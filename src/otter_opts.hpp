@@ -12,7 +12,8 @@ class OtterOpts {
 		int mapq;
 		double read_quality;
 		int max_cov;
-		int min_allele_cov;
+		int min_support_cov;
+		double min_support_sim;
 		double min_cov_fraction;
 		int min_cov_fraction2_l;
 		double min_cov_fraction2_f;
@@ -40,7 +41,7 @@ class OtterOpts {
 		void init_mapq(int);
 		void init_read_quality(double);
 		void init_max_cov(int);
-		void init_min_allele_cov(int);
+		void init_min_support(std::string);
 		void init_min_cov_fraction(double);
 		void init_threads(int);
 		void init_max_error(double);

@@ -79,11 +79,24 @@ void OtterOpts::init_max_cov(int _max_cov)
 	}
 }
 
-void OtterOpts::init_min_allele_cov(int _min_allele_cov)
+void OtterOpts::init_min_support(std::string tmp)
 {
-	if(_min_allele_cov >= 0) min_allele_cov = _min_allele_cov;
+	std::vector<std::string> tmp_inputs;
+	parse_line(',', tmp, tmp_inputs);
+	if(tmp_inputs.size() == 2) {
+		min_support_cov = std::stoi(tmp_inputs[0]);
+		min_support_sim = std::stod(tmp_inputs[1]);
+	}
 	else{
-		std::cerr << '(' << antimestamp() << "): [ERROR] Invalid min-allele-coverage value: " << _min_allele_cov <<  std::endl;
+		std::cerr << '(' << antimestamp() << "): [ERROR] expected two comma-separated values: " << tmp <<  std::endl;
+		exit(0);
+	}
+	if(min_support_cov < 0){
+		std::cerr << '(' << antimestamp() << "): [ERROR] expected INT value of min-support >= 0: " << min_support_cov <<  std::endl;
+		exit(0);
+	}
+	if(!(min_support_sim >= 0 && min_support_sim <= 1.0)){
+		std::cerr << '(' << antimestamp() << "): [ERROR] expected DOUBLE value of 0 >= min-support <= 1.0: " << min_support_sim <<  std::endl;
 		exit(0);
 	}
 }

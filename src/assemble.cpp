@@ -16,6 +16,94 @@
 #include <map>
 #include <mutex>
 #include <cmath>
+#include <functional>
+
+void remove_outliers(const uint32_t min_support_cov, const double min_support_sim, const std::vector<ANREAD>& anread_block, std::vector<ANREAD>& anread_block_filtered)
+{
+	KmerEncoding encoding;
+	std::vector<KUSAGE> kusages;
+	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
+		const auto& read = anread_block[read_i];
+		std::vector<double> tmpvec;
+		seq2kcounts(5, encoding, read.seq, tmpvec);
+		kusages.emplace_back(tmpvec);
+	}
+
+	DistMatrix simmat(anread_block.size());
+	DistMatrix lmat(anread_block.size());
+	for(uint32_t i = 0; i < kusages.size(); ++i){
+		const auto& i_k = kusages[i];
+		uint32_t i_k_l = anread_block[i].seq.size();
+
+		for(uint32_t j = i + 1; j < kusages.size(); ++j){
+			const auto& j_k = kusages[j];
+			uint32_t j_k_l = anread_block[j].seq.size();
+			double sim_l = 1 - (i_k_l > j_k_l ? double(i_k_l - j_k_l)/i_k_l : double(j_k_l - i_k_l)/j_k_l);
+			double sim = ((std::isnan(i_k.vnorm) || std::isnan(j_k.vnorm)) ? -1 : (std::round(i_k.cosine_sim(j_k)*1000.0)/1000.0));
+			if(sim < 0) sim = anread_block[i].seq == anread_block[j].seq ? 1 : 0;
+			simmat.set_dist(i, j, sim);
+			lmat.set_dist(i, j, sim_l);
+		}
+	}
+
+	for(uint32_t i = 0; i < kusages.size(); ++i){
+		/**
+		std::cout << i << '\t' << anread_block[i].rq << '\t' << anread_block[i].is_spanning() << '\n';
+		std::cout << anread_block[i].seq << '\n';
+		 */
+		std::vector<std::pair<double, double>> sims;
+		for(uint32_t j = 0; j < kusages.size(); ++j) if(i != j) sims.emplace_back(std::make_pair(simmat.get_dist(i, j), lmat.get_dist(i,j)));
+		sort(sims.begin(), sims.end(), std::greater<>());
+		uint32_t support = 0;
+		for(uint32_t j = 0; j < min_support_cov; ++j) {
+			if(sims[j].first >= min_support_sim) support++;
+			else if(sims[j].second >= min_support_sim) support++;
+		}
+		if(support >= min_support_cov) anread_block_filtered.emplace_back(anread_block[i]);
+		//std::cout << support << '\n';
+	}
+
+	/** 
+	uint32_t approx_kmers = 0;
+	std::vector<uint32_t> read_sizes(anread_block.size());
+	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
+		const auto& read = anread_block[read_i];
+		if(read.seq.size() > approx_kmers) approx_kmers = read.seq.size();
+		read_sizes[read_i] = read.seq.size();
+	}
+
+	approx_kmers *= 5;//could be optimized
+
+	KEDGE_MAP global_kmer_counts;
+	global_kmer_counts.reserve(approx_kmers);
+	std::vector<std::vector<KEDGE>> anread_block_kvecs(anread_block.size());
+	std::vector<KEDGE_MAP> individual_kmer_counts(anread_block.size());
+	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
+		const auto& read = anread_block[read_i];
+		std::vector<KEDGE> kmers;
+		auto& kmer_counts = individual_kmer_counts[read_i];
+		kmer_counts.reserve(read.seq.size());
+		get_kvec(read.seq.c_str(), 5, kmers, kmer_counts);
+		for(const auto& k : kmer_counts) global_kmer_counts[k.first] += k.second;
+		anread_block_kvecs[read_i] = kmers;
+		std::cout << kmers.size() << '\n';
+	}
+
+	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
+		const auto& read = anread_block[read_i];
+		const auto& kmer_counts = individual_kmer_counts[read_i];
+		const auto& vec = anread_block_kvecs[read_i];
+		double e_frac = 0;
+		for(const auto& k : vec) {
+			int adjusted_count = global_kmer_counts.at(k) - kmer_counts.at(k);
+			if(adjusted_count < 3) ++e_frac;
+		}
+		e_frac /= vec.size();
+		std::cout << read_i << '\t' << e_frac << '\t' << read.is_spanning() << '\t' << read.seq.size() << '\t' << read.rq << '\n';
+		std::cout << read.seq << '\n';
+	}
+	*/
+}
 
 uint32_t count_spanning_reads(const std::vector<ANREAD>& anread_block)
 {
@@ -55,14 +143,19 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 				BED mod_bed = local_bed;
 				mod_bed.start -= (int)params.offset_l;
 				mod_bed.end += (int)params.offset_r;
-				/** parse reads, perform local realignments where needed **/
-				std::vector<ANREAD> anread_block;
 				if(params.is_debug){
 					std_out_mtx.lock();
 					std::cerr << '(' << antimestamp() << "): [DEBUG] Processing " << local_bed.toScString() << std::endl;
 					std_out_mtx.unlock();
 				}
-				parse_anreads(params, mod_bed, bam_inst, anread_block);
+				/** parse reads, perform local realignments where needed **/
+				std::vector<ANREAD> anread_block;
+				{
+					std::vector<ANREAD> anread_block_tmp;
+					parse_anreads(params, mod_bed, bam_inst, anread_block_tmp);
+					remove_outliers(params.min_support_cov, params.min_support_sim, anread_block_tmp, anread_block);
+				}
+
 				if(params.is_debug){
 					std_out_mtx.lock();
 					std::cerr << '(' << antimestamp() << "): [DEBUG] Loaded " << anread_block.size() << " reads" << std::endl;
@@ -126,7 +219,7 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 								if(params.max_alleles != 1) fill_dist_matrix(local_ignore_haps, aligner, anread_block, valid_indeces, distmatrix);
 								/** cluster reads and fine allele seqs **/
 								ClusteringStatus clustmsg;
-								otter_hclust(local_ignore_haps, params.max_alleles, params.bandwidth_short, params.bandwidth_length, params.bandwidth_long, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, params.min_allele_cov, valid_indeces, distmatrix, aligner, anread_block, clustmsg);
+								otter_hclust(local_ignore_haps, params.max_alleles, params.bandwidth_short, params.bandwidth_length, params.bandwidth_long, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, valid_indeces, distmatrix, aligner, anread_block, clustmsg);
 								std::vector<int> labels(anread_block.size(), -1);
 								for(uint32_t i = 0; i < clustmsg.labels.size(); ++i) {
 									labels[valid_indeces[i]] = clustmsg.labels[i];

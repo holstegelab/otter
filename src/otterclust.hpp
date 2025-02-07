@@ -47,7 +47,6 @@ void otter_hclust(
 	const double& min_cov_fraction, 
 	const int& min_cov_fraction2_l, 
 	const double& min_cov_fraction2_f,
-	const int& min_allele_cov,
 	const std::vector<int>& indeces, 
 	DistMatrix& distmatrix, wfa::WFAligner& aligner, 
 	std::vector<ANREAD>& reads, 

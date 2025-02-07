@@ -36,7 +36,7 @@ void command_assemble_parser(int argc, char** argv){
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("q, read-quality", "Minimium (PacBio) read-quality.", cxxopts::value<double>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
-      ("x, min-allele-cov", "Minimum coverage per allele.", cxxopts::value<int>()->default_value("1"))
+      ("x, min-support", "Minimum read-support and approximate similarity (for noisy long-reads) [INT,DOUBLE]", cxxopts::value<std::string>()->default_value("2,0.95"))
       ("F, cov-fraction", "Minimum coverage fraction per sequence.", cxxopts::value<double>()->default_value("0.2"))
       ("A, cov-fraction-large", "Alternative minimum coverage fraction given comma-seperated string [INT,DOUBLE].", cxxopts::value<std::string>()->default_value("500,0.1"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.01"))
@@ -74,7 +74,7 @@ void command_assemble_parser(int argc, char** argv){
       params.init_mapq(result["mapq"].as<int>());
       params.init_read_quality(result["read-quality"].as<double>());
       params.init_max_cov(result["max-cov"].as<int>());
-      params.init_min_allele_cov(result["min-allele-cov"].as<int>());
+      params.init_min_support(result["min-support"].as<std::string>());
       params.init_min_cov_fraction(result["cov-fraction"].as<double>());
       params.init_threads(result["threads"].as<int>());
       params.init_max_error(result["max-error"].as<double>());
