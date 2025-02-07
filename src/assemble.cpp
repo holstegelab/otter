@@ -148,12 +148,13 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 					std::cerr << '(' << antimestamp() << "): [DEBUG] Processing " << local_bed.toScString() << std::endl;
 					std_out_mtx.unlock();
 				}
-				/** parse reads, perform local realignments where needed **/
+				/** parse reads, remove highly erroneous reads, perform local realignments where needed **/
 				std::vector<ANREAD> anread_block;
 				{
 					std::vector<ANREAD> anread_block_tmp;
 					parse_anreads(params, mod_bed, bam_inst, anread_block_tmp);
-					remove_outliers(params.min_support_cov, params.min_support_sim, anread_block_tmp, anread_block);
+					if(anread_block_tmp.size() <= params.min_support_cov) anread_block = anread_block_tmp;
+					else remove_outliers(params.min_support_cov, params.min_support_sim, anread_block_tmp, anread_block);
 				}
 
 				if(params.is_debug){
