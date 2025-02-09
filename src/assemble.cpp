@@ -18,7 +18,7 @@
 #include <cmath>
 #include <functional>
 
-void remove_outliers(const uint32_t min_support_cov, const double min_support_sim, const std::vector<ANREAD>& anread_block, std::vector<ANREAD>& anread_block_filtered)
+void remove_outliers(const int min_support_cov, const double min_cov_fraction, const double min_cov_fraction2_f, const int min_cov_fraction2_l, const double min_support_sim, const std::vector<ANREAD>& anread_block, std::vector<ANREAD>& anread_block_filtered)
 {
 	KmerEncoding encoding;
 	std::vector<KUSAGE> kusages;
@@ -46,63 +46,27 @@ void remove_outliers(const uint32_t min_support_cov, const double min_support_si
 		}
 	}
 
+	int min_cov1 = std::max(min_support_cov, int(anread_block.size()*min_cov_fraction + 0.5));
+	int min_cov2 = std::max(min_support_cov, int(anread_block.size()*min_cov_fraction2_f + 0.5));
+
 	for(uint32_t i = 0; i < kusages.size(); ++i){
 		/**
 		std::cout << i << '\t' << anread_block[i].rq << '\t' << anread_block[i].is_spanning() << '\n';
 		std::cout << anread_block[i].seq << '\n';
 		 */
+		int read_l = anread_block[i].seq.size();
 		std::vector<std::pair<double, double>> sims;
 		for(uint32_t j = 0; j < kusages.size(); ++j) if(i != j) sims.emplace_back(std::make_pair(simmat.get_dist(i, j), lmat.get_dist(i,j)));
 		sort(sims.begin(), sims.end(), std::greater<>());
-		uint32_t support = 0;
-		for(uint32_t j = 0; j < min_support_cov; ++j) {
+		int support = 0;
+		int stop = std::max(min_cov1, min_cov2);
+		for(int j = 0; j < stop; ++j) {
 			if(sims[j].first >= min_support_sim) support++;
 			else if(sims[j].second >= min_support_sim) support++;
 		}
-		if(support >= min_support_cov) anread_block_filtered.emplace_back(anread_block[i]);
+		if((read_l < min_cov_fraction2_l && support >= min_cov1) || (read_l >= min_cov_fraction2_l && support >= min_cov2)) anread_block_filtered.emplace_back(anread_block[i]);
 		//std::cout << support << '\n';
 	}
-
-	/** 
-	uint32_t approx_kmers = 0;
-	std::vector<uint32_t> read_sizes(anread_block.size());
-	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
-		const auto& read = anread_block[read_i];
-		if(read.seq.size() > approx_kmers) approx_kmers = read.seq.size();
-		read_sizes[read_i] = read.seq.size();
-	}
-
-	approx_kmers *= 5;//could be optimized
-
-	KEDGE_MAP global_kmer_counts;
-	global_kmer_counts.reserve(approx_kmers);
-	std::vector<std::vector<KEDGE>> anread_block_kvecs(anread_block.size());
-	std::vector<KEDGE_MAP> individual_kmer_counts(anread_block.size());
-	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
-		const auto& read = anread_block[read_i];
-		std::vector<KEDGE> kmers;
-		auto& kmer_counts = individual_kmer_counts[read_i];
-		kmer_counts.reserve(read.seq.size());
-		get_kvec(read.seq.c_str(), 5, kmers, kmer_counts);
-		for(const auto& k : kmer_counts) global_kmer_counts[k.first] += k.second;
-		anread_block_kvecs[read_i] = kmers;
-		std::cout << kmers.size() << '\n';
-	}
-
-	for(uint32_t read_i = 0; read_i < anread_block.size(); ++read_i){
-		const auto& read = anread_block[read_i];
-		const auto& kmer_counts = individual_kmer_counts[read_i];
-		const auto& vec = anread_block_kvecs[read_i];
-		double e_frac = 0;
-		for(const auto& k : vec) {
-			int adjusted_count = global_kmer_counts.at(k) - kmer_counts.at(k);
-			if(adjusted_count < 3) ++e_frac;
-		}
-		e_frac /= vec.size();
-		std::cout << read_i << '\t' << e_frac << '\t' << read.is_spanning() << '\t' << read.seq.size() << '\t' << read.rq << '\n';
-		std::cout << read.seq << '\n';
-	}
-	*/
 }
 
 uint32_t count_spanning_reads(const std::vector<ANREAD>& anread_block)
@@ -148,13 +112,13 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 					std::cerr << '(' << antimestamp() << "): [DEBUG] Processing " << local_bed.toScString() << std::endl;
 					std_out_mtx.unlock();
 				}
-				/** parse reads, remove highly erroneous reads, perform local realignments where needed **/
+				/** parse reads, remove highly erroneous reads**/
 				std::vector<ANREAD> anread_block;
 				{
 					std::vector<ANREAD> anread_block_tmp;
 					parse_anreads(params, mod_bed, bam_inst, anread_block_tmp);
-					if(anread_block_tmp.size() <= params.min_support_cov) anread_block = anread_block_tmp;
-					else remove_outliers(params.min_support_cov, params.min_support_sim, anread_block_tmp, anread_block);
+					if(int(anread_block_tmp.size()) <= params.min_support_cov) anread_block = anread_block_tmp;
+					else remove_outliers(params.min_support_cov, params.min_cov_fraction, params.min_cov_fraction2_f, params.min_cov_fraction2_l, params.min_support_sim, anread_block_tmp, anread_block);
 				}
 
 				if(params.is_debug){
