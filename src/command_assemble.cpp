@@ -36,7 +36,7 @@ void command_assemble_parser(int argc, char** argv){
       ("m, mapq", "Minimum mapping quality.", cxxopts::value<int>()->default_value("0"))
       ("q, read-quality", "Minimium (PacBio) read-quality.", cxxopts::value<double>()->default_value("0"))
       ("c, max-cov", "Ignore regions with coverage above this value.", cxxopts::value<int>()->default_value("200"))
-      ("x, min-support", "Minimum read-support and approximate similarity (for noisy long-reads) [INT,DOUBLE]", cxxopts::value<std::string>()->default_value("2,0.95"))
+      ("x, min-support", "Minimum read-support and approximate similarity (for noisy long-reads) [INT,DOUBLE]", cxxopts::value<std::string>()->default_value("1,0.95"))
       ("F, cov-fraction", "Minimum coverage fraction per sequence.", cxxopts::value<double>()->default_value("0.2"))
       ("A, cov-fraction-large", "Alternative minimum coverage fraction given comma-seperated string [INT,DOUBLE].", cxxopts::value<std::string>()->default_value("500,0.1"))
       ("e, max-error", "Maximum tolerable error.", cxxopts::value<double>()->default_value("0.01"))

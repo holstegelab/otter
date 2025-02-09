@@ -46,8 +46,8 @@ void remove_outliers(const int min_support_cov, const double min_cov_fraction, c
 		}
 	}
 
-	int min_cov1 = std::max(min_support_cov, int(anread_block.size()*min_cov_fraction + 0.5));
-	int min_cov2 = std::max(min_support_cov, int(anread_block.size()*min_cov_fraction2_f + 0.5));
+	int min_cov1 = std::max(min_support_cov, int(anread_block.size()*min_cov_fraction + 0.5) - 1);
+	int min_cov2 = std::max(min_support_cov, int(anread_block.size()*min_cov_fraction2_f + 0.5) - 1);
 
 	for(uint32_t i = 0; i < kusages.size(); ++i){
 		/**
