@@ -17,6 +17,7 @@ const std::string sc_tag = "sc";
 const std::string se_tag = "se";
 const std::string sp_tag = "sp";
 const std::string ic_tag = "ic";
+const std::string pf_tag = "pf";
 
 char _get_spanning_tag_value(const bool& is_spanning_l, const bool& is_spanning_r)
 {
@@ -39,12 +40,12 @@ ANALLELE::ANALLELE(){};
 ANALLELE::ANALLELE(const std::string& _seq): ANSEQ(_seq), scov(1), acov(1), tcov(1), se(0), ic(1), hpt(-1,-1){};
 ANALLELE::ANALLELE(const std::string& _seq, int s, int a, int t, float _se, int i, int h, int p): ANSEQ(_seq), scov(s), acov(a), tcov(t), se(_se), ic(i), hpt(h,p){};
 
-void ANALLELE::stdout_sam(const std::string& name, const std::string& chr, const int& start, const int& end, const std::string& rg, const bool& is_read, const bool& is_spanning_l, const bool& is_spanning_r) const
+void ANALLELE::stdout_sam(const std::string& name, const std::string& chr, const int& start, const int& end, const std::string& rg, const uint32_t pfcov, const bool& is_read, const bool& is_spanning_l, const bool& is_spanning_r) const
 {
 	std::string pseudo_qual(seq.size(), '!');
 	std::cout << name << "\t0\t" << chr << '\t' << start << "\t0\t" << seq.size() << "M\t*\t0\t0\t" << seq << '\t' << pseudo_qual;
 	if(!rg.empty()) std::cout << '\t' << rg_tag << ":Z:" << rg;
-	std::cout  << '\t' << ta_tag << ":Z:" << chr << ':' << start << '-' << end << '\t' << tc_tag << ":i:" << tcov << '\t' << ac_tag << ":i:" << acov << '\t' << sc_tag << ":i:" << scov;
+	std::cout  << '\t' << ta_tag << ":Z:" << chr << ':' << start << '-' << end << '\t' << pf_tag << ":i:" << pfcov << '\t' << tc_tag << ":i:" << tcov << '\t' << ac_tag << ":i:" << acov << '\t' << sc_tag << ":i:" << scov;
 	if(is_read) std::cout << '\t' << sp_tag << ":A:" << _get_spanning_tag_value(is_spanning_l, is_spanning_r);
 	std::cout << '\t' << ic_tag << ":i:" << ic;
 	std::cout << '\t' << se_tag << ":f:" << se;

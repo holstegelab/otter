@@ -17,6 +17,7 @@ extern const std::string ta_tag;
 extern const std::string ac_tag;
 extern const std::string tc_tag;
 extern const std::string sp_tag;
+extern const std::string pf_tag;
 
 
 class ANSEQ{
@@ -49,7 +50,7 @@ class ANALLELE : public ANSEQ{
 		ANALLELE();
 		ANALLELE(const std::string&);
 		ANALLELE(const std::string&, int, int, int, float, int, int, int);
-		void stdout_sam(const std::string&, const std::string&, const int&, const int&, const std::string&, const bool& is_read = false, const bool& is_spanning_l = false, const bool& is_spanning_r = false) const;
+		void stdout_sam(const std::string&, const std::string&, const int&, const int&, const std::string&, const uint32_t, const bool& is_read = false, const bool& is_spanning_l = false, const bool& is_spanning_r = false) const;
 		void stdout_fa(const std::string&, const std::string&, const bool& is_read = false, const bool& is_spanning_l = false, const bool& is_spanning_r = false) const;
 };
 

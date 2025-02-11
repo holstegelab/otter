@@ -114,9 +114,11 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 				}
 				/** parse reads, remove highly erroneous reads**/
 				std::vector<ANREAD> anread_block;
+				uint32_t pfcov = 0;
 				{
 					std::vector<ANREAD> anread_block_tmp;
 					parse_anreads(params, mod_bed, bam_inst, anread_block_tmp);
+					pfcov = anread_block_tmp.size();
 					if(int(anread_block_tmp.size()) <= params.min_support_cov) anread_block = anread_block_tmp;
 					else remove_outliers(params.min_support_cov, params.min_cov_fraction, params.min_cov_fraction2_f, params.min_cov_fraction2_l, params.min_support_sim, anread_block_tmp, anread_block);
 				}
@@ -202,7 +204,7 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 								for(int l = 0; l < clustmsg.fc; ++l) {
 									alleles[l].ic = clustmsg.ic;
 									if(params.is_fa) alleles[l].stdout_fa(params.read_group, local_bed.toScString() + '#' + std::to_string(l));
-									else alleles[l].stdout_sam(local_bed.toScString() + "_" + std::to_string(l), local_bed.chr, local_bed.start, local_bed.end, params.read_group);
+									else alleles[l].stdout_sam(local_bed.toScString() + "_" + std::to_string(l), local_bed.chr, local_bed.start, local_bed.end, params.read_group, pfcov);
 								}
 								std_out_mtx.unlock();
 							}
