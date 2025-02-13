@@ -183,7 +183,10 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 							else{
 								/** create matrix of pairwise edit-distances **/
 								DistMatrix distmatrix(valid_indeces.size());
-								if(params.max_alleles != 1) fill_dist_matrix(local_ignore_haps, aligner, anread_block, valid_indeces, distmatrix);
+								if(params.max_alleles != 1) {
+									fill_dist_matrix(local_ignore_haps, aligner, anread_block, valid_indeces, distmatrix);
+									for(uint32_t d_i = 0; d_i < distmatrix.values.size(); ++d_i) distmatrix.values[d_i] += ((d_i%2) ? 0.00001 : -0.00001)*(d_i%10);
+								}
 								/** cluster reads and fine allele seqs **/
 								ClusteringStatus clustmsg;
 								otter_hclust(local_ignore_haps, params.max_alleles, params.bandwidth_short, params.bandwidth_length, params.bandwidth_long, params.max_error, params.min_cov_fraction, params.min_cov_fraction2_l, params.min_cov_fraction2_f, valid_indeces, distmatrix, aligner, anread_block, clustmsg);
