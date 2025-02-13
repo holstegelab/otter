@@ -333,7 +333,7 @@ void cluter_to_e(const double& max_error, const uint32_t& total_alleles, DistMat
 	int* merge = new int[2*(total_alleles-1)];
     double* height = new double[total_alleles-1];
     auto distmatrix_cpy = distmatrix.values;
-    hclust_fast(total_alleles, distmatrix_cpy.data(), HCLUST_METHOD_AVERAGE, merge, height);
+    hclust_fast(total_alleles, distmatrix_cpy.data(), HCLUST_METHOD_MEDIAN, merge, height);
     cutree_cdist(total_alleles, merge, height, max_error, labels);
     /** seperate clusters into vectors **/
     uint32_t total_clusters = 0;
