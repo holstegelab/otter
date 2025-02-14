@@ -185,7 +185,7 @@ void assemble_process(const OtterOpts& params, const std::string& bam, const std
 								DistMatrix distmatrix(valid_indeces.size());
 								if(params.max_alleles != 1) {
 									fill_dist_matrix(local_ignore_haps, aligner, anread_block, valid_indeces, distmatrix);
-									for(uint32_t d_i = 0; d_i < distmatrix.values.size(); ++d_i) distmatrix.values[d_i] += ((d_i%2) ? 0.00001 : -0.00001)*(d_i%10);
+									distmatrix.set_padding();
 								}
 								/** cluster reads and fine allele seqs **/
 								ClusteringStatus clustmsg;

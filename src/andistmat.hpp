@@ -12,6 +12,7 @@ class DistMatrix{
 		DistMatrix(uint32_t);
 		DistMatrix(uint32_t&, std::vector<double>&);
 		void set_dist(uint32_t, uint32_t, double);
+		void set_padding();
 		double get_dist(uint32_t, uint32_t) const;
 		void get_dists(const std::vector<uint32_t>&, std::vector<double>& dists) const;
 		uint32_t get_medoid(std::vector<uint32_t>&) const;

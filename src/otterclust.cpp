@@ -374,6 +374,7 @@ void anallele_cluster_length(const double& max_error, const std::vector<ANALLELE
 			distmatrix.set_dist(i, j, length_dist(i_l, j_l));
 		}
 	}
+	distmatrix.set_padding();
 	//cluster using indeces
 	std::vector<std::vector<int>> _clusters;
 	cluter_to_e(max_error, indeces.size(), distmatrix, _clusters);
@@ -412,6 +413,7 @@ void anallele_cluster_kusage(const double& max_error, const uint32_t& k, const s
 			distmatrix.set_dist(i, j, dist);
 		}
 	}
+	distmatrix.set_padding();
 	//cluster using indeces
 	std::vector<std::vector<int>> _clusters;
 	cluter_to_e(max_error, kusages.size(), distmatrix, _clusters);
