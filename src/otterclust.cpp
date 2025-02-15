@@ -406,10 +406,14 @@ void anallele_cluster_kusage(const double& max_error, const uint32_t& k, const s
 	generate_kusage(k, encoding, alleles, indeces, kusages);
 
 	for(int i = 0; i < (int)kusages.size(); ++i){
-		const auto& i_k = kusages[i];
+		const auto& i_k = kusages[indeces[i]];
+		const auto& i_a = alleles[indeces[i]].seq;
 		for(int j = i+1; j < (int)kusages.size(); ++j){
-			const auto& j_k = kusages[j];
-			double dist = 1.0 - ((std::isnan(i_k.vnorm) || std::isnan(j_k.vnorm)) ? 0 : (std::round(i_k.cosine_sim(j_k)*1000.0)/1000.0));
+			const auto& j_k = kusages[indeces[j]];
+			const auto& j_a = alleles[indeces[j]].seq;
+			double dist = 1.0;
+			if(i_a == j_a) dist = 0;
+			else dist = 1.0 - ((std::isnan(i_k.vnorm) || std::isnan(j_k.vnorm)) ? 0 : (std::round(i_k.cosine_sim(j_k)*1000.0)/1000.0));
 			distmatrix.set_dist(i, j, dist);
 		}
 	}
@@ -486,7 +490,7 @@ int anallele_cluster(const double& max_error_l, const double& max_error_c, const
 	std::vector<int> kusage_reps;
 	std::vector<KUSAGE> kusages;
 	DistMatrix distmatrix_kusage(allele_indeces.size());
-	anallele_cluster_kusage(max_error_c, 3, alleles, allele_indeces, distmatrix_kusage, kusages, kusage_clusters, kusage_reps);
+	anallele_cluster_kusage(max_error_c, 5, alleles, allele_indeces, distmatrix_kusage, kusages, kusage_clusters, kusage_reps);
 	if(kusage_reps.size() != kusage_clusters.size()){
 		std::cerr << "[ERROR] unexpected representative alleles (" << gt_reps.size() << ") for " << kusage_clusters.size() << " kusage clusters" << std::endl;
 		exit(1);
