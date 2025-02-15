@@ -22,7 +22,7 @@ void DistMatrix::set_dist(uint32_t i, uint32_t j, double d)
 
 void DistMatrix::set_padding()
 {
-	for(uint32_t d_i = 0; d_i < values.size(); ++d_i) values[d_i] += ((d_i%2) ? 0.00001 : -0.00001)*(d_i%10);
+	for(uint32_t d_i = 0; d_i < values.size(); ++d_i) values[d_i] += ((d_i%2) ? 0.00001 : 0.000005)*(d_i%10);
 }
 
 double DistMatrix::get_dist(uint32_t i, uint32_t j) const 
