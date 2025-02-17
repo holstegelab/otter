@@ -466,7 +466,7 @@ int _anallele_cluster(const double& max_error_l, const double& max_error_c, cons
 }
 */
 
-int anallele_cluster(const double& max_error_l, const double& max_error_c, const std::vector<ANALLELE>& alleles, std::vector<Genotype>& genotypes, std::vector<int>& gt_reps)
+int anallele_cluster(const double& max_error_l, const double& max_error_c, const int& kmer_l, const std::vector<ANALLELE>& alleles, std::vector<Genotype>& genotypes, std::vector<int>& gt_reps)
 {
 	std::vector<int> allele_indeces(alleles.size());
 	for(uint32_t i = 0; i < allele_indeces.size(); ++i) allele_indeces[i] = i;
@@ -490,7 +490,7 @@ int anallele_cluster(const double& max_error_l, const double& max_error_c, const
 	std::vector<int> kusage_reps;
 	std::vector<KUSAGE> kusages;
 	DistMatrix distmatrix_kusage(allele_indeces.size());
-	anallele_cluster_kusage(max_error_c, 5, alleles, allele_indeces, distmatrix_kusage, kusages, kusage_clusters, kusage_reps);
+	anallele_cluster_kusage(max_error_c, kmer_l, alleles, allele_indeces, distmatrix_kusage, kusages, kusage_clusters, kusage_reps);
 	if(kusage_reps.size() != kusage_clusters.size()){
 		std::cerr << "[ERROR] unexpected representative alleles (" << gt_reps.size() << ") for " << kusage_clusters.size() << " kusage clusters" << std::endl;
 		exit(1);

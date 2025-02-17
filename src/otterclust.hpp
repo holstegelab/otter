@@ -69,6 +69,7 @@ void generate_kusage(
 int anallele_cluster(
 	const double& max_error_l, 
 	const double& max_error_c,
+	const int& kmer_l,
 	const std::vector<ANALLELE>& alleles, 
 	std::vector<Genotype>& genotypes,
 	 std::vector<int>& gt_reps

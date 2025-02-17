@@ -215,3 +215,12 @@ void OtterOpts::init_dist_length(std::string tmp)
 		dist_length_se = std::stod(tmp_inputs[2]);
 	}
 }
+
+void OtterOpts::init_kmer_length(int _kmer_l)
+{
+	if(_kmer_l > 0 && _kmer_l <= 32) kmer_length = _kmer_l;
+	else{
+		std::cerr << '(' << antimestamp() << "): [ERROR] Invalid kmer-length: " << _kmer_l <<  std::endl;
+		exit(0);
+	}
+}

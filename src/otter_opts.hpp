@@ -35,6 +35,7 @@ class OtterOpts {
 		double dist_length_frac;
 		double dist_length_se;
 		double max_cosdis;
+		int kmer_length;
 
 		void init_offset(std::string);
 		void init_max_alleles(int);
@@ -51,6 +52,7 @@ class OtterOpts {
 		void init_min_sim(double);
 		void init_min_cov_fraction2(std::string);
 		void init_dist_length(std::string);
+		void init_kmer_length(int);
 
 };
 

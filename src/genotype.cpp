@@ -135,7 +135,7 @@ void genotype_process(const OtterOpts& params, const std::string& bam, const std
 						*/
 						std::vector<Genotype> genotypes(anallele_block.size());
 						std::vector<int> gt_reps;
-						int acc_gt = anallele_cluster(params.max_error, params.max_cosdis, anallele_block, genotypes, gt_reps);
+						int acc_gt = anallele_cluster(params.max_error, params.max_cosdis, params.kmer_length, anallele_block, genotypes, gt_reps);
 						
 						if(acc_gt != (int)gt_reps.size()){
 							std::cerr << "(" << antimestamp() << "): ERROR unexpected representative alleles (" << gt_reps.size() << ") for " << acc_gt << " total alleles" << std::endl;
