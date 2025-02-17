@@ -24,7 +24,7 @@ void command_genotype_parser(int argc, char** argv){
       ("r, reference", "Provide reference genome for joint-genotyping (VCF). If not provided, will output lengths (TSV).", cxxopts::value<std::string>()->default_value(""))
       ("e, max-error", "Maximimum sequence dissimilarity.", cxxopts::value<double>()->default_value("0.025"))
       ("s, max-cosdis", "Maximum cosine dissimilarity.", cxxopts::value<double>()->default_value("0.025"))
-      ("k, kmer-length", "Kmer-length for cosine dissimilarity.", cxxopts::value<double>()->default_value("4"))
+      ("k, kmer-length", "Kmer-length for cosine dissimilarity.", cxxopts::value<int>()->default_value("4"))
       ("t, threads", "Total threads to use.", cxxopts::value<int>()->default_value("1"));
     //parse CLI arguments
     auto result = options.parse(argc, argv);
